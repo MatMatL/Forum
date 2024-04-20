@@ -11,10 +11,12 @@ const port = ":8080"
 
 var index = template.Must(template.ParseFiles("index.html"))
 var login = template.Must(template.ParseFiles("login.html"))
+var register = template.Must(template.ParseFiles("register.html"))
 
 func main() {
 	http.HandleFunc("/", Index)
 	http.HandleFunc("/login", Login)
+	http.HandleFunc("/register", Register)
 
 	fmt.Println("//localhost:8080")
 	http.ListenAndServe(port, nil)
@@ -30,23 +32,79 @@ type Session struct {
 	isConnected bool
 }
 
+var Users []User
+var CurrentSession = Session{}
+
 func Index(w http.ResponseWriter, r *http.Request) {
+	if !CurrentSession.isConnected {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
 	index.ExecuteTemplate(w, "index.html", nil)
 }
 
-func Login(w http.ResponseWriter, r *http.Request) {
-	login.ExecuteTemplate(w, "login.html", nil)
+type loginErrors struct {
+	WrongUsername bool
+	WrongPassword bool
+}
 
-	//manage request
+func Login(w http.ResponseWriter, r *http.Request) {
+	var moi = User{"Mathieu", "1234"}
+	Users = make([]User, 1)
+	Users[0] = moi
+	var currentErrors = loginErrors{}
+
+	var UsernameInput string
+	var PasswordInput string
+
 	if r.Method == "POST" {
-		//sleep to let the time to the programe to run
 		time.Sleep(69 * time.Millisecond)
 
 		r.ParseForm()
-		userName := r.FormValue("userName")
-		fmt.Println("User name : ", userName)
+		UsernameInput = r.FormValue("userName")
+		fmt.Println("User name : ", CurrentSession.user.name)
 
-		userPassword := r.FormValue("userPassword")
-		fmt.Println("User password : ", userPassword)
+		PasswordInput = r.FormValue("userPassword")
+		fmt.Println("User password : ", CurrentSession.user.password)
+	}
+
+	time.Sleep(200 * time.Millisecond)
+
+	for _, currentUser := range Users {
+		if currentUser.name == UsernameInput {
+			currentErrors.WrongUsername = false
+			fmt.Println("found username")
+			if currentUser.password == PasswordInput {
+				fmt.Println("found password")
+				CurrentSession.isConnected = true
+				CurrentSession.user = currentUser
+			} else {
+				currentErrors.WrongPassword = true
+			}
+			break
+		}
+	}
+
+	if !CurrentSession.isConnected && !currentErrors.WrongPassword && UsernameInput != "" {
+		fmt.Println("user not found")
+		currentErrors.WrongUsername = true
+	}
+
+	if CurrentSession.isConnected {
+		fmt.Println("redirection")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	login.ExecuteTemplate(w, "login.html", currentErrors)
+
+}
+
+func Register(w http.ResponseWriter, r *http.Request) {
+	if CurrentSession.isConnected {
+		fmt.Println("redirection")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 	}
 }

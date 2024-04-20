@@ -7,7 +7,7 @@
         <link rel="stylesheet" href="/styles.css">
         <link rel="icon" href = "logo.png" type = "image/x-icon" />
     
-        <title>Index</title>
+        <title>Login</title>
     </head>
 
     <body>
@@ -15,7 +15,16 @@
 
         </header>
 
-        <p>Home page</p>
+        <p>Login page</p>
+
+        <br>
+
+        <form action="/login" method="POST">
+            <input type="text" id="userName" name="userName">            
+            <input type="text" id="userPassword" name="userPassword">
+            
+            <input type="submit" value="Submit">
+        </form> 
 
         <footer>
         </footer>

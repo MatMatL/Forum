@@ -22,7 +22,8 @@ var register = template.Must(template.ParseFiles("register.html"))
 var db *sql.DB
 
 func main() {
-	db, err := sql.Open("sqlite3", "./forum.db")
+	var err error
+	db, err = sql.Open("sqlite3", "./forum.db")
 	if err != nil {
 		log.Fatal(err)
 	}

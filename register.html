@@ -27,11 +27,9 @@
             <input type="submit" value="Submit">
         </form> 
         {{if .WrongEmail}}
-            <p>wrong email</p>
+            <p>invalide email or email already taken</p>
         {{else if .WrongUsername}} 
-            <p>Username not found</p>
-        {{else if .WrongPassword}}
-            <p>Incorrect password</p>
+            <p>Username already taken</p>
         {{end}}
         <footer>
         </footer>

@@ -29,7 +29,7 @@ func main() {
 	}
 	defer db.Close()
 
-	InitTables(db)
+	InitTables()
 
 	http.HandleFunc("/", Index)
 	http.HandleFunc("/login", Login)
@@ -62,7 +62,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 }
 
 type loginErrors struct {
-	Wrongemail    bool
+	WrongEmail    bool
 	WrongUsername bool
 	WrongPassword bool
 }
@@ -147,30 +147,31 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("User password : ", PasswordInput)
 	}
 
-	if !ValidEmail(EmailInput) {
-		currentErrors.Wrongemail = true
-		fmt.Println("wrong email or name taken")
+	if !ValidEmail(EmailInput) || AlreadyTakenEmail(EmailInput) {
+		currentErrors.WrongEmail = true
+		fmt.Println("invalide email or email already taken")
+	} else if AlreadyTakenUsername(UsernameInput) {
+		currentErrors.WrongUsername = true
+		fmt.Println("Username already taken")
 	} else {
 		Request := `INSERT INTO Register (EMAIL,USERNAME,PASSWORD) VALUES (?, ?, ?);`
 		fmt.Println("Send : ", Request)
-		Prout()
 		_, err := db.Exec(Request, EmailInput, UsernameInput, PasswordInput)
-		Prout()
 		if err != nil {
 			log.Fatal(err)
 		}
-		Prout()
 
 		PrintTable("Register")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
 
 	register.ExecuteTemplate(w, "register.html", currentErrors)
 }
 
-func InitTables(db *sql.DB) {
+func InitTables() {
 	Register := `
 	CREATE TABLE Register (
-		ID INTEGER PRIMARY KEY AUTOINCREMENT,
+		ID INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
 		EMAIL          TEXT    NOT NULL UNIQUE,
 		USERNAME       TEXT    NOT NULL UNIQUE,
 		PASSWORD       TEXT    NOT NULL
@@ -180,7 +181,7 @@ func InitTables(db *sql.DB) {
 
 	Posts := `
 	CREATE TABLE Posts (
-		ID INTEGER PRIMARY KEY AUTOINCREMENT,
+		ID INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
 		USERNAME          TEXT    NOT NULL UNIQUE,
 		CONTENT           TEXT    NOT NULL UNIQUE,
 		IMAGE             TEXT
@@ -224,5 +225,39 @@ func ValidEmail(email string) bool {
 }
 
 func Prout() {
-	fmt.Println("prout %d", prout)
+	fmt.Println("prout", prout)
+}
+
+func AlreadyTakenEmail(EmailInput string) bool {
+	row := db.QueryRow("SELECT EMAIL FROM Register WHERE EMAIL = ?", EmailInput)
+
+	var email string
+	err := row.Scan(&email)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false
+		} else {
+			log.Fatal(err)
+		}
+	}
+
+	return true
+}
+
+func AlreadyTakenUsername(UsernameInput string) bool {
+	row := db.QueryRow("SELECT USERNAME FROM Register WHERE USERNAME = ?", UsernameInput)
+
+	var username string
+	err := row.Scan(&username)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false
+		} else {
+			log.Fatal(err)
+		}
+	}
+
+	return true
 }

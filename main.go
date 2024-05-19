@@ -34,28 +34,27 @@ func main() {
 	http.HandleFunc("/", Index)
 	http.HandleFunc("/login", Login)
 	http.HandleFunc("/register", Register)
+	http.HandleFunc("/logout", Logout)
 
 	fmt.Println("//localhost:8080")
 	http.ListenAndServe(port, nil)
 }
 
-type User struct {
-	name     string
-	password string
-}
-
 type Session struct {
-	user        User
+	username    string
 	isConnected bool
 }
 
-var Users []User
 var CurrentSession = Session{}
 
 func Index(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("in index")
 	if !CurrentSession.isConnected {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		fmt.Println("u r not connected")
 		return
+	} else {
+		fmt.Println(" gg u r connected")
 	}
 
 	index.ExecuteTemplate(w, "index.html", nil)
@@ -68,13 +67,16 @@ type loginErrors struct {
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	var moi = User{"Mathieu", "1234"}
-	Users = make([]User, 1)
-	Users[0] = moi
+	if CurrentSession.isConnected {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	}
+	fmt.Println("in login")
 	var currentErrors = loginErrors{}
 
 	var UsernameInput string
 	var PasswordInput string
+
+	var readyToGo bool = false
 
 	if r.Method == "POST" {
 		time.Sleep(69 * time.Millisecond)
@@ -85,34 +87,17 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 		PasswordInput = r.FormValue("userPassword")
 		fmt.Println("User password : ", PasswordInput)
+
+		readyToGo = true
 	}
 
 	time.Sleep(200 * time.Millisecond)
 
-	for _, currentUser := range Users {
-		if currentUser.name == UsernameInput {
-			currentErrors.WrongUsername = false
-			fmt.Println("found username")
-			if currentUser.password == PasswordInput {
-				fmt.Println("found password")
-				CurrentSession.isConnected = true
-				CurrentSession.user = currentUser
-			} else {
-				currentErrors.WrongPassword = true
-			}
-			break
+	if readyToGo {
+		if loggingIn(UsernameInput, PasswordInput) {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
 		}
-	}
-
-	if !CurrentSession.isConnected && !currentErrors.WrongPassword && UsernameInput != "" {
-		fmt.Println("user not found")
-		currentErrors.WrongUsername = true
-	}
-
-	if CurrentSession.isConnected {
-		fmt.Println("redirection")
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
 	}
 
 	login.ExecuteTemplate(w, "login.html", currentErrors)
@@ -182,8 +167,8 @@ func InitTables() {
 	Posts := `
 	CREATE TABLE Posts (
 		ID INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
-		USERNAME          TEXT    NOT NULL UNIQUE,
-		CONTENT           TEXT    NOT NULL UNIQUE,
+		USERNAME          TEXT    NOT NULL,
+		CONTENT           TEXT    NOT NULL,
 		IMAGE             TEXT
 	);
 	`
@@ -260,4 +245,49 @@ func AlreadyTakenUsername(UsernameInput string) bool {
 	}
 
 	return true
+}
+
+func loggingIn(UsernameInput string, PasswordInput string) bool {
+	row := db.QueryRow("SELECT PASSWORD FROM Register WHERE USERNAME = ?", UsernameInput)
+
+	var password string
+	err := row.Scan(&password)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+		} else {
+			log.Fatal(err)
+		}
+	} else {
+		if password == PasswordInput {
+			CurrentSession.isConnected = true
+			CurrentSession.username = UsernameInput
+			return true
+		}
+	}
+
+	row = db.QueryRow("SELECT USERNAME, PASSWORD FROM Register WHERE EMAIL = ?", UsernameInput)
+
+	var username string
+	err = row.Scan(&username, &password)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+		} else {
+			log.Fatal(err)
+		}
+	} else {
+		if password == PasswordInput {
+			CurrentSession.isConnected = true
+			CurrentSession.username = username
+			return true
+		}
+	}
+	return false
+}
+
+func Logout(w http.ResponseWriter, r *http.Request) {
+	CurrentSession.isConnected = false
+	CurrentSession.username = ""
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

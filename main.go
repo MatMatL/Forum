@@ -18,6 +18,7 @@ const port = ":8080"
 var index = template.Must(template.ParseFiles("index.html"))
 var login = template.Must(template.ParseFiles("login.html"))
 var register = template.Must(template.ParseFiles("register.html"))
+var newpost = template.Must(template.ParseFiles("newPost.html"))
 
 var db *sql.DB
 
@@ -35,6 +36,7 @@ func main() {
 	http.HandleFunc("/login", Login)
 	http.HandleFunc("/register", Register)
 	http.HandleFunc("/logout", Logout)
+	http.HandleFunc("/newPost", NewPost)
 
 	fmt.Println("//localhost:8080")
 	http.ListenAndServe(port, nil)
@@ -168,11 +170,13 @@ func InitTables() {
 	CREATE TABLE Posts (
 		ID INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
 		USERNAME          TEXT    NOT NULL,
+		TITLE             TEXT    NOT NULL,
 		CONTENT           TEXT    NOT NULL,
-		IMAGE             TEXT
+		CATEGORIES        TEXT    NOT NULL
 	);
 	`
-	db.Exec(Posts)
+	result, err := db.Exec(Posts)
+	fmt.Println(result, err)
 }
 
 func PrintTable(tableName string) {
@@ -290,4 +294,44 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	CurrentSession.isConnected = false
 	CurrentSession.username = ""
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func NewPost(w http.ResponseWriter, r *http.Request) {
+	if !CurrentSession.isConnected {
+		fmt.Println("redirection")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	var currentErrors = loginErrors{}
+
+	var Title string
+	var Content string
+	var Categories string
+
+	if r.Method == "POST" {
+		time.Sleep(69 * time.Millisecond)
+
+		r.ParseForm()
+
+		Title = r.FormValue("postTitle")
+		fmt.Println("Title : ", Title)
+
+		Content = r.FormValue("postContent")
+		fmt.Println("Content : ", Content)
+
+		Categories = r.FormValue("postCategories")
+		fmt.Println("categories : ", Categories)
+	}
+
+	if Title != "" {
+		Request := `INSERT INTO Posts (USERNAME,TITLE,CONTENT,CATEGORIES) VALUES (?, ?, ?, ?);`
+		fmt.Println("Send : ", Request)
+		_, err := db.Exec(Request, CurrentSession.username, Title, Content, Categories)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	newpost.ExecuteTemplate(w, "newPost.html", currentErrors)
 }

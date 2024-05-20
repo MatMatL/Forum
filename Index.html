@@ -19,6 +19,15 @@
 
         <p>Home page</p>
 
+        <h1>Forum Posts</h1>
+        {{range .}}
+        <div class="post">
+            <h2>{{.Title}}</h2>
+            <p>{{.Content}}</p>
+            <p><small>Posted by {{.Username}} in {{.Categories}}</small></p>
+        </div>
+        {{end}}
+
         <footer>
         </footer>
     </body>

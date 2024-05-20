@@ -11,8 +11,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-var prout int = 0
-
 const port = ":8080"
 
 var index = template.Must(template.ParseFiles("index.html"))
@@ -50,16 +48,8 @@ type Session struct {
 var CurrentSession = Session{}
 
 func Index(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("in index")
-	if !CurrentSession.isConnected {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		fmt.Println("u r not connected")
-		return
-	} else {
-		fmt.Println(" gg u r connected")
-	}
-
-	index.ExecuteTemplate(w, "index.html", nil)
+	posts := getPosts()
+	index.ExecuteTemplate(w, "index.html", posts)
 }
 
 type loginErrors struct {
@@ -72,7 +62,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	if CurrentSession.isConnected {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
-	fmt.Println("in login")
 	var currentErrors = loginErrors{}
 
 	var UsernameInput string
@@ -108,7 +97,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 func Register(w http.ResponseWriter, r *http.Request) {
 	if CurrentSession.isConnected {
-		fmt.Println("redirection")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -211,10 +199,6 @@ func ValidEmail(email string) bool {
 		}
 	}
 	return false
-}
-
-func Prout() {
-	fmt.Println("prout", prout)
 }
 
 func AlreadyTakenEmail(EmailInput string) bool {
@@ -331,7 +315,38 @@ func NewPost(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
 
 	newpost.ExecuteTemplate(w, "newPost.html", currentErrors)
+}
+
+type Post struct {
+	ID         int
+	Username   string
+	Title      string
+	Content    string
+	Categories string
+}
+
+func getPosts() []Post {
+	rows, err := db.Query("SELECT ID, USERNAME, TITLE, CONTENT, CATEGORIES FROM Posts")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer rows.Close()
+
+	var posts []Post
+	for rows.Next() {
+		var post Post
+		if err := rows.Scan(&post.ID, &post.Username, &post.Title, &post.Content, &post.Categories); err != nil {
+			fmt.Println(err)
+		}
+		posts = append(posts, post)
+	}
+	if err := rows.Err(); err != nil {
+		fmt.Println(err)
+	}
+
+	return posts
 }

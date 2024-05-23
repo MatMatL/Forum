@@ -1,0 +1,102 @@
+body {
+    background-color: #000;
+    color: #fff;
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    background-color: #111;
+    padding: 2.2vh; /* équivalent à 20px */
+    text-align: center;
+    border-bottom: 0.22vh solid #0ff; /* équivalent à 2px */
+}
+
+header h1 {
+    color: #0ff;
+    text-shadow: 0 0 1.1vh #0ff, 0 0 2.2vh #0ff, 0 0 3.3vh #0ff; /* équivalent à 10px, 20px, 30px */
+}
+
+nav {
+    text-align: center;
+    margin: 2.2vh 0; /* équivalent à 20px */
+}
+
+nav a {
+    color: #0ff;
+    text-decoration: none;
+    margin: 0 1.65vw; /* équivalent à 15px */
+    font-size: 2vh; /* équivalent à 18px */
+    text-shadow: 0 0 0.55vh #0ff, 0 0 1.1vh #0ff; /* équivalent à 5px, 10px */
+    transition: color 0.3s;
+}
+
+nav a:hover {
+    color: #ff0;
+    text-shadow: 0 0 0.55vh #ff0, 0 0 1.1vh #ff0; /* équivalent à 5px, 10px */
+}
+
+.container {
+    padding: 2.2vh; /* équivalent à 20px */
+}
+
+.forum-category {
+    background-color: #111;
+    padding: 1.65vh; /* équivalent à 15px */
+    margin-bottom: 2.2vh; /* équivalent à 20px */
+    border: 0.22vh solid #0ff; /* équivalent à 2px */
+    box-shadow: 0 0 1.1vh #0ff; /* équivalent à 10px */
+}
+
+.forum-category h2 {
+    color: #0ff;
+    text-shadow: 0 0 1.1vh #0ff, 0 0 2.2vh #0ff; /* équivalent à 10px, 20px */
+}
+
+.forum-topic {
+    background-color: #222;
+    padding: 1.1vh; /* équivalent à 10px */
+    margin-bottom: 1.1vh; /* équivalent à 10px */
+    border: 0.11vh solid #0ff; /* équivalent à 1px */
+    box-shadow: 0 0 0.55vh #0ff; /* équivalent à 5px */
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.forum-topic:hover {
+    background-color: #333;
+    box-shadow: 0 0 1.65vh #0ff; /* équivalent à 15px */
+}
+
+.forum-topic a {
+    color: #0ff;
+    text-decoration: none;
+    font-size: 1.8vh; /* équivalent à 16px */
+    text-shadow: 0 0 0.55vh #0ff; /* équivalent à 5px */
+}
+
+.forum-topic a:hover {
+    color: #ff0;
+    text-shadow: 0 0 0.55vh #ff0; /* équivalent à 5px */
+}
+
+.footer {
+    background-color: #111;
+    text-align: center;
+    padding: 1.1vh; /* équivalent à 10px */
+    border-top: 0.22vh solid #0ff; /* équivalent à 2px */
+    color: #fff;
+    text-shadow: 0 0 0.55vh #0ff; /* équivalent à 5px */
+}
+
+.footer a {
+    color: #0ff;
+    text-decoration: none;
+    text-shadow: 0 0 0.55vh #0ff; /* équivalent à 5px */
+    transition: color 0.3s;
+}
+
+.footer a:hover {
+    color: #ff0;
+    text-shadow: 0 0 0.55vh #ff0; /* équivalent à 5px */
+}

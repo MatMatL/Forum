@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -17,6 +18,7 @@ var index = template.Must(template.ParseFiles("index.html"))
 var login = template.Must(template.ParseFiles("login.html"))
 var register = template.Must(template.ParseFiles("register.html"))
 var newpost = template.Must(template.ParseFiles("newPost.html"))
+var post = template.Must(template.ParseFiles("post.html"))
 
 var db *sql.DB
 
@@ -35,6 +37,7 @@ func main() {
 	http.HandleFunc("/register", Register)
 	http.HandleFunc("/logout", Logout)
 	http.HandleFunc("/newPost", NewPost)
+	http.HandleFunc("/post", Post)
 
 	fmt.Println("//localhost:8080")
 	http.ListenAndServe(port, nil)
@@ -321,7 +324,7 @@ func NewPost(w http.ResponseWriter, r *http.Request) {
 	newpost.ExecuteTemplate(w, "newPost.html", currentErrors)
 }
 
-type Post struct {
+type PostData struct {
 	ID         int
 	Username   string
 	Title      string
@@ -329,16 +332,16 @@ type Post struct {
 	Categories string
 }
 
-func getPosts() []Post {
+func getPosts() []PostData {
 	rows, err := db.Query("SELECT ID, USERNAME, TITLE, CONTENT, CATEGORIES FROM Posts")
 	if err != nil {
 		fmt.Println(err)
 	}
 	defer rows.Close()
 
-	var posts []Post
+	var posts []PostData
 	for rows.Next() {
-		var post Post
+		var post PostData
 		if err := rows.Scan(&post.ID, &post.Username, &post.Title, &post.Content, &post.Categories); err != nil {
 			fmt.Println(err)
 		}
@@ -349,4 +352,39 @@ func getPosts() []Post {
 	}
 
 	return posts
+}
+
+func Post(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		http.Error(w, "Missing ID parameter", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID parameter", http.StatusBadRequest)
+		return
+	}
+
+	postData, err := getPostByID(id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Post not found", http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+	post.ExecuteTemplate(w, "post.html", postData)
+}
+
+func getPostByID(id int) (PostData, error) {
+	var post PostData
+	row := db.QueryRow("SELECT ID, USERNAME, TITLE, CONTENT, CATEGORIES FROM Posts WHERE ID = ?", id)
+	err := row.Scan(&post.ID, &post.Username, &post.Title, &post.Content, &post.Categories)
+	if err != nil {
+		return post, err
+	}
+	return post, nil
 }

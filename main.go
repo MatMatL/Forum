@@ -10,6 +10,7 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const port = ":8080"
@@ -134,7 +135,11 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	} else {
 		Request := `INSERT INTO Register (EMAIL,USERNAME,PASSWORD) VALUES (?, ?, ?);`
 		fmt.Println("Send : ", Request)
-		_, err := db.Exec(Request, EmailInput, UsernameInput, PasswordInput)
+		HachedPassword, errHash := bcrypt.GenerateFromPassword([]byte(PasswordInput), 10)
+		if errHash != nil {
+			fmt.Println("error of hashing :", errHash)
+		}
+		_, err := db.Exec(Request, EmailInput, UsernameInput, string(HachedPassword))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -250,7 +255,7 @@ func loggingIn(UsernameInput string, PasswordInput string) bool {
 			log.Fatal(err)
 		}
 	} else {
-		if password == PasswordInput {
+		if PasswordIsGood(password, PasswordInput) {
 			CurrentSession.isConnected = true
 			CurrentSession.username = UsernameInput
 			return true
@@ -268,12 +273,22 @@ func loggingIn(UsernameInput string, PasswordInput string) bool {
 			log.Fatal(err)
 		}
 	} else {
-		if password == PasswordInput {
+		if PasswordIsGood(password, PasswordInput) {
 			CurrentSession.isConnected = true
 			CurrentSession.username = username
 			return true
 		}
 	}
+	return false
+}
+
+func PasswordIsGood(password string, PasswordInput string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(password), []byte(PasswordInput))
+
+	if err == nil {
+		return true
+	}
+	fmt.Println("Wrrong password: ", err)
 	return false
 }
 

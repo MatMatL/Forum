@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gofrs/uuid"
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -44,13 +45,6 @@ func main() {
 	http.ListenAndServe(port, nil)
 }
 
-type Session struct {
-	username    string
-	isConnected bool
-}
-
-var CurrentSession = Session{}
-
 func Index(w http.ResponseWriter, r *http.Request) {
 	posts := getPosts()
 	index.ExecuteTemplate(w, "index.html", posts)
@@ -63,89 +57,72 @@ type loginErrors struct {
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	if CurrentSession.isConnected {
+	username := CheckCookies(w, r)
+	if username != "" {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
-	var currentErrors = loginErrors{}
-
-	var UsernameInput string
-	var PasswordInput string
-
-	var readyToGo bool = false
 
 	if r.Method == "POST" {
-		time.Sleep(69 * time.Millisecond)
-
 		r.ParseForm()
-		UsernameInput = r.FormValue("userName")
-		fmt.Println("User name : ", UsernameInput)
+		UsernameInput := r.FormValue("userName")
+		PasswordInput := r.FormValue("userPassword")
 
-		PasswordInput = r.FormValue("userPassword")
-		fmt.Println("User password : ", PasswordInput)
-
-		readyToGo = true
-	}
-
-	time.Sleep(200 * time.Millisecond)
-
-	if readyToGo {
 		if loggingIn(UsernameInput, PasswordInput) {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			sessionID, err := uuid.NewV4()
+			if err != nil {
+				log.Fatal(err)
+			}
+			expiration := time.Now().Add(24 * time.Hour)
+			_, err = db.Exec("INSERT INTO Sessions (UUID, USERNAME, EXPIRATION) VALUES (?, ?, ?)", sessionID.String(), UsernameInput, expiration)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			cookie := &http.Cookie{
+				Name:    "session",
+				Value:   sessionID.String(),
+				Expires: expiration,
+			}
+			http.SetCookie(w, cookie)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 	}
 
-	login.ExecuteTemplate(w, "login.html", currentErrors)
-
+	login.ExecuteTemplate(w, "login.html", nil)
 }
 
 func Register(w http.ResponseWriter, r *http.Request) {
-	if CurrentSession.isConnected {
+	username := CheckCookies(w, r)
+	if username != "" {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
 	}
 
 	var currentErrors = loginErrors{}
 
-	var EmailInput string
-	var UsernameInput string
-	var PasswordInput string
-
 	if r.Method == "POST" {
-		time.Sleep(69 * time.Millisecond)
-
 		r.ParseForm()
+		EmailInput := r.FormValue("newEmail")
+		UsernameInput := r.FormValue("newUserName")
+		PasswordInput := r.FormValue("newUserPassword")
 
-		EmailInput = r.FormValue("newEmail")
-		fmt.Println("User email : ", EmailInput)
-
-		UsernameInput = r.FormValue("newUserName")
-		fmt.Println("User name : ", UsernameInput)
-
-		PasswordInput = r.FormValue("newUserPassword")
-		fmt.Println("User password : ", PasswordInput)
-	}
-
-	if !ValidEmail(EmailInput) || AlreadyTakenEmail(EmailInput) {
-		currentErrors.WrongEmail = true
-		fmt.Println("invalide email or email already taken")
-	} else if AlreadyTakenUsername(UsernameInput) {
-		currentErrors.WrongUsername = true
-		fmt.Println("Username already taken")
-	} else {
-		Request := `INSERT INTO Register (EMAIL,USERNAME,PASSWORD) VALUES (?, ?, ?);`
-		fmt.Println("Send : ", Request)
-		HachedPassword, errHash := bcrypt.GenerateFromPassword([]byte(PasswordInput), 10)
-		if errHash != nil {
-			fmt.Println("error of hashing :", errHash)
+		if !ValidEmail(EmailInput) || AlreadyTakenEmail(EmailInput) {
+			currentErrors.WrongEmail = true
+		} else if AlreadyTakenUsername(UsernameInput) {
+			currentErrors.WrongUsername = true
+		} else {
+			Request := `INSERT INTO Register (EMAIL,USERNAME,PASSWORD) VALUES (?, ?, ?);`
+			HachedPassword, errHash := bcrypt.GenerateFromPassword([]byte(PasswordInput), 10)
+			if errHash != nil {
+				log.Fatal(errHash)
+			}
+			_, err := db.Exec(Request, EmailInput, UsernameInput, string(HachedPassword))
+			if err != nil {
+				log.Fatal(err)
+			}
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
 		}
-		_, err := db.Exec(Request, EmailInput, UsernameInput, string(HachedPassword))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		PrintTable("Register")
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
 
 	register.ExecuteTemplate(w, "register.html", currentErrors)
@@ -153,7 +130,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 func InitTables() {
 	Register := `
-	CREATE TABLE Register (
+	CREATE TABLE IF NOT EXISTS Register (
 		ID INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
 		EMAIL          TEXT    NOT NULL UNIQUE,
 		USERNAME       TEXT    NOT NULL UNIQUE,
@@ -163,7 +140,7 @@ func InitTables() {
 	db.Exec(Register)
 
 	Posts := `
-	CREATE TABLE Posts (
+	CREATE TABLE IF NOT EXISTS Posts (
 		ID INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
 		USERNAME          TEXT    NOT NULL,
 		TITLE             TEXT    NOT NULL,
@@ -171,8 +148,16 @@ func InitTables() {
 		CATEGORIES        TEXT    NOT NULL
 	);
 	`
-	result, err := db.Exec(Posts)
-	fmt.Println(result, err)
+	db.Exec(Posts)
+
+	Sessions := `
+	CREATE TABLE IF NOT EXISTS Sessions (
+		UUID TEXT PRIMARY KEY UNIQUE,
+		USERNAME TEXT NOT NULL,
+		EXPIRATION DATETIME NOT NULL
+	);
+	`
+	db.Exec(Sessions)
 }
 
 func PrintTable(tableName string) {
@@ -256,8 +241,6 @@ func loggingIn(UsernameInput string, PasswordInput string) bool {
 		}
 	} else {
 		if PasswordIsGood(password, PasswordInput) {
-			CurrentSession.isConnected = true
-			CurrentSession.username = UsernameInput
 			return true
 		}
 	}
@@ -274,8 +257,6 @@ func loggingIn(UsernameInput string, PasswordInput string) bool {
 		}
 	} else {
 		if PasswordIsGood(password, PasswordInput) {
-			CurrentSession.isConnected = true
-			CurrentSession.username = username
 			return true
 		}
 	}
@@ -293,50 +274,53 @@ func PasswordIsGood(password string, PasswordInput string) bool {
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
-	CurrentSession.isConnected = false
-	CurrentSession.username = ""
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	cookie, err := r.Cookie("session")
+	if err == nil {
+		db.Exec("DELETE FROM Sessions WHERE UUID = ?", cookie.Value)
+		cookie := &http.Cookie{
+			Name:   "session",
+			Value:  "",
+			MaxAge: -1,
+		}
+		http.SetCookie(w, cookie)
+	}
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
 func NewPost(w http.ResponseWriter, r *http.Request) {
-	if !CurrentSession.isConnected {
-		fmt.Println("redirection")
+	cookie, err := r.Cookie("session")
+	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
-	var currentErrors = loginErrors{}
+	var username string
+	err = db.QueryRow("SELECT USERNAME FROM Sessions WHERE UUID = ?", cookie.Value).Scan(&username)
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 
-	var Title string
-	var Content string
-	var Categories string
+	var Title, Content, Categories string
 
 	if r.Method == "POST" {
-		time.Sleep(69 * time.Millisecond)
-
 		r.ParseForm()
-
 		Title = r.FormValue("postTitle")
-		fmt.Println("Title : ", Title)
-
 		Content = r.FormValue("postContent")
-		fmt.Println("Content : ", Content)
-
 		Categories = r.FormValue("postCategories")
-		fmt.Println("categories : ", Categories)
-	}
 
-	if Title != "" {
-		Request := `INSERT INTO Posts (USERNAME,TITLE,CONTENT,CATEGORIES) VALUES (?, ?, ?, ?);`
-		fmt.Println("Send : ", Request)
-		_, err := db.Exec(Request, CurrentSession.username, Title, Content, Categories)
-		if err != nil {
-			log.Fatal(err)
+		if Title != "" {
+			Request := `INSERT INTO Posts (USERNAME, TITLE, CONTENT, CATEGORIES) VALUES (?, ?, ?, ?);`
+			_, err := db.Exec(Request, username, Title, Content, Categories)
+			if err != nil {
+				log.Fatal(err)
+			}
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
 		}
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
 
-	newpost.ExecuteTemplate(w, "newPost.html", currentErrors)
+	newpost.ExecuteTemplate(w, "newPost.html", nil)
 }
 
 type PostData struct {
@@ -402,4 +386,26 @@ func getPostByID(id int) (PostData, error) {
 		return post, err
 	}
 	return post, nil
+}
+
+func CheckCookies(w http.ResponseWriter, r *http.Request) string {
+	cookie, err := r.Cookie("session")
+	if err != nil {
+		return ""
+	}
+
+	var username string
+	var expiration time.Time
+	err = db.QueryRow("SELECT USERNAME, EXPIRATION FROM Sessions WHERE UUID = ?", cookie.Value).Scan(&username, &expiration)
+	if err != nil || expiration.Before(time.Now()) {
+		cookie := &http.Cookie{
+			Name:   "session",
+			Value:  "",
+			MaxAge: -1,
+		}
+		http.SetCookie(w, cookie)
+		return ""
+	}
+
+	return username
 }

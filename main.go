@@ -14,6 +14,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+////////////////////////////////////////////////////////////////
+/////////                MAIN ; SERVER                 /////////
+////////////////////////////////////////////////////////////////
+
 const port = ":8080"
 
 var index = template.Must(template.ParseFiles("index.html"))
@@ -45,16 +49,84 @@ func main() {
 	http.ListenAndServe(port, nil)
 }
 
+////////////////////////////////////////////////////////////////
+/////////                  DATABASE                    /////////
+////////////////////////////////////////////////////////////////
+
+func InitTables() {
+	Register := `
+	CREATE TABLE IF NOT EXISTS Register (
+		ID INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+		EMAIL          TEXT    NOT NULL UNIQUE,
+		USERNAME       TEXT    NOT NULL UNIQUE,
+		PASSWORD       TEXT    NOT NULL
+	);
+	`
+	db.Exec(Register)
+
+	Posts := `
+	CREATE TABLE IF NOT EXISTS Posts (
+		ID INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+		USERNAME          TEXT    NOT NULL,
+		TITLE             TEXT    NOT NULL,
+		CONTENT           TEXT    NOT NULL,
+		CATEGORIES        TEXT    NOT NULL
+	);
+	`
+	db.Exec(Posts)
+
+	Sessions := `
+	CREATE TABLE IF NOT EXISTS Sessions (
+		UUID TEXT PRIMARY KEY UNIQUE,
+		USERNAME TEXT NOT NULL,
+		EXPIRATION DATETIME NOT NULL
+	);
+	`
+	db.Exec(Sessions)
+}
+
+////////////////////////////////////////////////////////////////
+/////////                   INDEX                      /////////
+////////////////////////////////////////////////////////////////
+
 func Index(w http.ResponseWriter, r *http.Request) {
 	posts := getPosts()
 	index.ExecuteTemplate(w, "index.html", posts)
 }
 
-type loginErrors struct {
-	WrongEmail    bool
-	WrongUsername bool
-	WrongPassword bool
+type PostData struct {
+	ID         int
+	Username   string
+	Title      string
+	Content    string
+	Categories string
 }
+
+func getPosts() []PostData {
+	rows, err := db.Query("SELECT ID, USERNAME, TITLE, CONTENT, CATEGORIES FROM Posts")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer rows.Close()
+
+	var posts []PostData
+	for rows.Next() {
+		var post PostData
+		if err := rows.Scan(&post.ID, &post.Username, &post.Title, &post.Content, &post.Categories); err != nil {
+			fmt.Println(err)
+		}
+		posts = append(posts, post)
+	}
+	if err := rows.Err(); err != nil {
+		fmt.Println(err)
+	}
+
+	return posts
+}
+
+////////////////////////////////////////////////////////////////
+/////////                   LOGIN                      /////////
+////////////////////////////////////////////////////////////////
 
 func Login(w http.ResponseWriter, r *http.Request) {
 	username := CheckCookies(w, r)
@@ -92,6 +164,51 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	login.ExecuteTemplate(w, "login.html", nil)
 }
 
+func loggingIn(UsernameInput string, PasswordInput string) bool {
+	row := db.QueryRow("SELECT PASSWORD FROM Register WHERE USERNAME = ?", UsernameInput)
+
+	var password string
+	err := row.Scan(&password)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+		} else {
+			log.Fatal(err)
+		}
+	} else {
+		if PasswordIsGood(password, PasswordInput) {
+			return true
+		}
+	}
+
+	row = db.QueryRow("SELECT USERNAME, PASSWORD FROM Register WHERE EMAIL = ?", UsernameInput)
+
+	var username string
+	err = row.Scan(&username, &password)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+		} else {
+			log.Fatal(err)
+		}
+	} else {
+		if PasswordIsGood(password, PasswordInput) {
+			return true
+		}
+	}
+	return false
+}
+
+////////////////////////////////////////////////////////////////
+/////////                  REGISTER                    /////////
+////////////////////////////////////////////////////////////////
+
+type loginErrors struct {
+	WrongEmail    bool
+	WrongUsername bool
+	WrongPassword bool
+}
+
 func Register(w http.ResponseWriter, r *http.Request) {
 	username := CheckCookies(w, r)
 	if username != "" {
@@ -126,63 +243,6 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	register.ExecuteTemplate(w, "register.html", currentErrors)
-}
-
-func InitTables() {
-	Register := `
-	CREATE TABLE IF NOT EXISTS Register (
-		ID INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
-		EMAIL          TEXT    NOT NULL UNIQUE,
-		USERNAME       TEXT    NOT NULL UNIQUE,
-		PASSWORD       TEXT    NOT NULL
-	);
-	`
-	db.Exec(Register)
-
-	Posts := `
-	CREATE TABLE IF NOT EXISTS Posts (
-		ID INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
-		USERNAME          TEXT    NOT NULL,
-		TITLE             TEXT    NOT NULL,
-		CONTENT           TEXT    NOT NULL,
-		CATEGORIES        TEXT    NOT NULL
-	);
-	`
-	db.Exec(Posts)
-
-	Sessions := `
-	CREATE TABLE IF NOT EXISTS Sessions (
-		UUID TEXT PRIMARY KEY UNIQUE,
-		USERNAME TEXT NOT NULL,
-		EXPIRATION DATETIME NOT NULL
-	);
-	`
-	db.Exec(Sessions)
-}
-
-func PrintTable(tableName string) {
-	rows, err := db.Query("SELECT * FROM " + tableName)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		var id int
-		var titre string
-		var auteur string
-		var date string
-		err = rows.Scan(&id, &titre, &auteur, &date)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println(id, titre, auteur, date)
-	}
-	err = rows.Err()
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 func ValidEmail(email string) bool {
@@ -228,41 +288,6 @@ func AlreadyTakenUsername(UsernameInput string) bool {
 	return true
 }
 
-func loggingIn(UsernameInput string, PasswordInput string) bool {
-	row := db.QueryRow("SELECT PASSWORD FROM Register WHERE USERNAME = ?", UsernameInput)
-
-	var password string
-	err := row.Scan(&password)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-		} else {
-			log.Fatal(err)
-		}
-	} else {
-		if PasswordIsGood(password, PasswordInput) {
-			return true
-		}
-	}
-
-	row = db.QueryRow("SELECT USERNAME, PASSWORD FROM Register WHERE EMAIL = ?", UsernameInput)
-
-	var username string
-	err = row.Scan(&username, &password)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-		} else {
-			log.Fatal(err)
-		}
-	} else {
-		if PasswordIsGood(password, PasswordInput) {
-			return true
-		}
-	}
-	return false
-}
-
 func PasswordIsGood(password string, PasswordInput string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(password), []byte(PasswordInput))
 
@@ -272,6 +297,10 @@ func PasswordIsGood(password string, PasswordInput string) bool {
 	fmt.Println("Wrrong password: ", err)
 	return false
 }
+
+////////////////////////////////////////////////////////////////
+/////////                   LOGOUT                     /////////
+////////////////////////////////////////////////////////////////
 
 func Logout(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session")
@@ -286,6 +315,10 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	}
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
+
+////////////////////////////////////////////////////////////////
+/////////                  NEW POST                    /////////
+////////////////////////////////////////////////////////////////
 
 func NewPost(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session")
@@ -323,35 +356,9 @@ func NewPost(w http.ResponseWriter, r *http.Request) {
 	newpost.ExecuteTemplate(w, "newPost.html", nil)
 }
 
-type PostData struct {
-	ID         int
-	Username   string
-	Title      string
-	Content    string
-	Categories string
-}
-
-func getPosts() []PostData {
-	rows, err := db.Query("SELECT ID, USERNAME, TITLE, CONTENT, CATEGORIES FROM Posts")
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer rows.Close()
-
-	var posts []PostData
-	for rows.Next() {
-		var post PostData
-		if err := rows.Scan(&post.ID, &post.Username, &post.Title, &post.Content, &post.Categories); err != nil {
-			fmt.Println(err)
-		}
-		posts = append(posts, post)
-	}
-	if err := rows.Err(); err != nil {
-		fmt.Println(err)
-	}
-
-	return posts
-}
+////////////////////////////////////////////////////////////////
+/////////                    POST                      /////////
+////////////////////////////////////////////////////////////////
 
 func Post(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
@@ -387,6 +394,10 @@ func getPostByID(id int) (PostData, error) {
 	}
 	return post, nil
 }
+
+////////////////////////////////////////////////////////////////
+/////////                   COOKIES                    /////////
+////////////////////////////////////////////////////////////////
 
 func CheckCookies(w http.ResponseWriter, r *http.Request) string {
 	cookie, err := r.Cookie("session")

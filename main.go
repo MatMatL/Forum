@@ -139,13 +139,15 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		UsernameInput := r.FormValue("userName")
 		PasswordInput := r.FormValue("userPassword")
 
-		if loggingIn(UsernameInput, PasswordInput) {
+		username := loggingIn(UsernameInput, PasswordInput)
+
+		if username != "" {
 			sessionID, err := uuid.NewV4()
 			if err != nil {
 				log.Fatal(err)
 			}
 			expiration := time.Now().Add(24 * time.Hour)
-			_, err = db.Exec("INSERT INTO Sessions (UUID, USERNAME, EXPIRATION) VALUES (?, ?, ?)", sessionID.String(), UsernameInput, expiration)
+			_, err = db.Exec("INSERT INTO Sessions (UUID, USERNAME, EXPIRATION) VALUES (?, ?, ?)", sessionID.String(), username, expiration)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -164,7 +166,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	login.ExecuteTemplate(w, "login.html", nil)
 }
 
-func loggingIn(UsernameInput string, PasswordInput string) bool {
+func loggingIn(UsernameInput string, PasswordInput string) string {
 	row := db.QueryRow("SELECT PASSWORD FROM Register WHERE USERNAME = ?", UsernameInput)
 
 	var password string
@@ -177,7 +179,7 @@ func loggingIn(UsernameInput string, PasswordInput string) bool {
 		}
 	} else {
 		if PasswordIsGood(password, PasswordInput) {
-			return true
+			return UsernameInput
 		}
 	}
 
@@ -193,10 +195,10 @@ func loggingIn(UsernameInput string, PasswordInput string) bool {
 		}
 	} else {
 		if PasswordIsGood(password, PasswordInput) {
-			return true
+			return username
 		}
 	}
-	return false
+	return ""
 }
 
 ////////////////////////////////////////////////////////////////

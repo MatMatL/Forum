@@ -1,34 +1,94 @@
 <!DOCTYPE html>
 <html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Forum</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <img src="logo.png" alt="Logo" class="logo">
+        <nav>
+            <ul>
+                <li><a href="#">Catégories</a></li>
+                <li><a href="#">Profil</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section class="welcome">
+            <h1>Bienvenue !</h1>
+            <p>Plongez dans le monde du <span>drones</span>.<br>
+            Rejoignez notre <span>communauté</span> de fans et d'experts.</p>
+            <button>Créer un compte</button>
+        </section>
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="/styles.css">
-        <link rel="icon" href = "logo.png" type = "image/x-icon" />
-    
-        <title>Index</title>
-    </head>
+        <section class="categories">
+            <h2>Catégories</h2>
+            <div class="category-list">
+                <div class="category-item">
+                    <img src="drone1.png" alt="Drone 1">
+                    <h3>Nouveaux drones DJI</h3>
+                    <button>Voir plus</button>
+                </div>
+                <div class="category-item">
+                    <img src="drone2.png" alt="Drone 2">
+                    <h3>Comment monter son drone seul ?</h3>
+                    <button>Voir plus</button>
+                </div>
+                <div class="category-item">
+                    <img src="drone3.png" alt="Drone 3">
+                    <h3>Problèmes avec votre drone ?</h3>
+                    <button>Voir plus</button>
+                </div>
+            </div>
+            <button class="view-all">Voir les catégories</button>
+        </section>
 
-    <body>
-        <header>
-            <a href="/logout">Logout</a>
-            <a href="/login">login</a>
-            <a href="/newPost">Create new post !</a>
-        </header>
+        <section class="posts">
+            <h2>Posts</h2>
+            <div class="post-list">
+                <div class="post-item">
+                    <img src="post1.png" alt="Post 1">
+                    <h3>Bug multi liftoff</h3>
+                    <p>Hello ! J’ai un bug avec mon liftoff, quand je vais dans le section pour jouer en multi j’atterrie sur un ch...</p>
+                    <button>lire le post</button>
+                </div>
+                <div class="post-item">
+                    <img src="post2.png" alt="Post 2">
+                    <h3>Mon nouveau drone</h3>
+                    <p>Je veux vous partager mon nouveau drone.Je viens de finir de le monter, je fini les derniers setup sur betaf...</p>
+                    <button>lire le post</button>
+                </div>
+            </div>
+            <button class="view-all">Voir tous les posts</button>
+        </section>
 
-        <p>Home page</p>
-
-        <h1>Forum Posts</h1>
-        {{range .}}
-        <div class="post">
-            <h2><a href="/post?id={{.ID}}">{{.Title}}</a></h2>
-            <p>{{.Content}}</p>
-            <p><small>Posted by {{.Username}} in {{.Categories}}</small></p>
-        </div>
-        {{end}}
-        
-        <footer>
-        </footer>
-    </body>
+        <section class="users">
+            <h2>Autres utilisateurs</h2>
+            <div class="user-list">
+                <div class="user-item">
+                    <img src="user1.png" alt="User 1">
+                    <h3>Offerville</h3>
+                    <button>voir le profil</button>
+                </div>
+                <div class="user-item">
+                    <img src="user2.png" alt="User 2">
+                    <h3>MatMat</h3>
+                    <button>voir le profil</button>
+                </div>
+                <div class="user-item">
+                    <img src="user3.png" alt="User 3">
+                    <h3>Gaper</h3>
+                    <button>voir le profil</button>
+                </div>
+            </div>
+            <button class="view-all">Voir plus d'utilisateurs</button>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 Mon Forum. Tous droits réservés.</p>
+    </footer>
+</body>
 </html>

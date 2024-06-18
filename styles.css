@@ -1,0 +1,141 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+header {
+    background-color: #2C2F48;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+}
+
+header .logo {
+    height: 50px;
+}
+
+header nav ul {
+    list-style: none;
+    display: flex;
+    gap: 20px;
+}
+
+header nav ul li a {
+    color: white;
+    text-decoration: none;
+}
+
+.welcome {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 100px;
+}
+
+.welcome h1 {
+    font-size: 3em;
+    color: #000000;
+    padding: 20px;
+}
+
+.welcome p {
+    font-size: 1.2em;
+    padding: 20px;
+}
+
+.welcome span {
+    color: #4CAF50;
+}
+
+.welcome button {
+    background-color: #FF6F61;
+    color: white;
+    border: none;
+    padding: 13px 26px;
+    cursor: pointer;
+    margin: 20px;
+    border-radius: 10px;
+}
+
+.categories, .users {
+    background-color: #2C2F48;
+    color: white;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.posts {
+    color: rgb(0, 0, 0);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.categories button, .users button, .posts button{
+    border-radius: 10px;
+    margin-top: 40px;
+    margin-bottom: 70px;
+}
+
+.categories h2, .posts h2, .users h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.category-list, .post-list, .user-list {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.category-item, .user-item {
+    background-color: white;
+    color: black;
+    padding: 10px;
+    text-align: center;
+    border-radius: 5px;
+    width: 30%;
+}
+
+.post-item {
+    background-color: #2C2F48;
+    color: rgb(255, 255, 255);
+    padding: 10px;
+    text-align: center;
+    border-radius: 5px;
+    width: 30%;
+}
+
+.category-item img, .post-item img, .user-item img {
+    max-width: 100%;
+    border-radius: 5px;
+}
+
+.category-item button, .post-item button, .user-item button {
+    background-color: #FF6F61;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    margin-top: 10px;
+    border-radius: 8px;
+}
+
+.view-all {
+    display: block;
+    margin: 20px auto;
+    background-color: #FF6F61;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+footer {
+    text-align: center;
+    padding: 10px;
+    color: #2C2F48;
+}

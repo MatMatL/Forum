@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -48,7 +50,8 @@ func main() {
 	http.HandleFunc("/profil", Profil)
 	http.HandleFunc("/newCategorie", NewCategorie)
 
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
 
 	fmt.Println("//localhost:8080")
 	http.ListenAndServe(port, nil)
@@ -75,7 +78,8 @@ func InitTables() {
 		USERNAME          TEXT    NOT NULL,
 		TITLE             TEXT    NOT NULL,
 		CONTENT           TEXT    NOT NULL,
-		CATEGORIES        TEXT    NOT NULL
+		CATEGORIES        TEXT    NOT NULL,
+		IMAGEPATH         TEXT
 	);
 	`
 	db.Exec(Posts)
@@ -83,7 +87,8 @@ func InitTables() {
 	Categories := `
 	CREATE TABLE IF NOT EXISTS Categories (
 		ID INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
-		TITLE             TEXT    NOT NULL UNIQUE
+		TITLE     TEXT NOT NULL UNIQUE,
+		IMAGEPATH TEXT
 	);
 	`
 	db.Exec(Categories)
@@ -104,7 +109,7 @@ func InitTables() {
 
 func Index(w http.ResponseWriter, r *http.Request) {
 	posts := getPosts()
-	posts = FormatingPost(posts)
+	posts = FormatingPosts(posts)
 	index.ExecuteTemplate(w, "index.html", posts)
 }
 
@@ -114,11 +119,12 @@ type PostData struct {
 	Title       string
 	Content     string
 	Categories  string
+	ImagePath   string
 	WithPicture bool
 }
 
 func getPosts() []PostData {
-	rows, err := db.Query("SELECT ID, USERNAME, TITLE, CONTENT, CATEGORIES FROM Posts")
+	rows, err := db.Query("SELECT ID, USERNAME, TITLE, CONTENT, CATEGORIES, IMAGEPATH FROM Posts")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -127,10 +133,9 @@ func getPosts() []PostData {
 	var posts []PostData
 	for rows.Next() {
 		var post PostData
-		if err := rows.Scan(&post.ID, &post.Username, &post.Title, &post.Content, &post.Categories); err != nil {
+		if err := rows.Scan(&post.ID, &post.Username, &post.Title, &post.Content, &post.Categories, &post.ImagePath); err != nil {
 			fmt.Println(err)
 		}
-		fmt.Println(post.Categories)
 		posts = append(posts, post)
 	}
 	if err := rows.Err(); err != nil {
@@ -140,42 +145,43 @@ func getPosts() []PostData {
 	return posts
 }
 
-func FormatingPost(posts []PostData) []PostData {
+func FormatingPosts(posts []PostData) []PostData {
 	var formatedPosts []PostData
 	if len(posts) >= 6 {
 		for i := 0; i < 6; i++ {
-			var tempoFormated PostData
-			if len(posts[i].Title) > 20 {
-				tempoFormated.Title = posts[i].Title[:25] + "..."
-			} else {
-				tempoFormated.Title = posts[i].Title
-			}
-			if len(posts[i].Content) > 70 {
-				tempoFormated.Content = posts[i].Content[:70] + "..."
-			} else {
-				tempoFormated.Content = posts[i].Content
-			}
-			tempoFormated.ID = posts[i].ID
+			tempoFormated := FormatingPost(posts[i])
 			formatedPosts = append(formatedPosts, tempoFormated)
 		}
 	} else {
 		for i := 0; i < len(posts); i++ {
-			var tempoFormated PostData
-			if len(posts[i].Title) > 25 {
-				tempoFormated.Title = posts[i].Title[:25] + "..."
-			} else {
-				tempoFormated.Title = posts[i].Title
-			}
-			if len(posts[i].Content) > 70 {
-				tempoFormated.Content = posts[i].Content[:70] + "..."
-			} else {
-				tempoFormated.Content = posts[i].Content
-			}
+			tempoFormated := FormatingPost(posts[i])
 			formatedPosts = append(formatedPosts, tempoFormated)
 		}
 	}
 
 	return formatedPosts
+}
+
+func FormatingPost(posts PostData) PostData {
+	var tempoFormated PostData
+	if len(posts.Title) > 25 {
+		tempoFormated.Title = posts.Title[:25] + "..."
+	} else {
+		tempoFormated.Title = posts.Title
+	}
+	if len(posts.Content) > 70 {
+		tempoFormated.Content = posts.Content[:70] + "..."
+	} else {
+		tempoFormated.Content = posts.Content
+	}
+	if posts.ImagePath != "" {
+		tempoFormated.WithPicture = true
+		tempoFormated.ImagePath = posts.ImagePath
+	} else {
+		tempoFormated.WithPicture = false
+	}
+	tempoFormated.ID = posts.ID
+	return tempoFormated
 }
 
 ////////////////////////////////////////////////////////////////
@@ -397,19 +403,55 @@ func NewPost(w http.ResponseWriter, r *http.Request) {
 	var Title, Content, Categories string
 
 	if r.Method == "POST" {
-		r.ParseForm()
+		err := r.ParseMultipartForm(10 << 20) // Limite à 10 Mo
+		if err != nil {
+			http.Error(w, "Error parsing form", http.StatusBadRequest)
+			return
+		}
+
 		Title = r.FormValue("postTitle")
 		Content = r.FormValue("postContent")
 		Categories = r.FormValue("postCategories")
+		file, handler, _ := r.FormFile("postImage")
 
-		if Title != "" {
-			Request := `INSERT INTO Posts (USERNAME, TITLE, CONTENT, CATEGORIES) VALUES (?, ?, ?, ?);`
-			_, err := db.Exec(Request, username, Title, Content, Categories)
-			if err != nil {
-				log.Fatal(err)
+		if file != nil {
+			defer file.Close()
+		}
+
+		if Title != "" && Content != "" {
+			if file != nil {
+
+				filePath := "./uploads/" + handler.Filename
+				out, err := os.Create(filePath)
+				if err != nil {
+					http.Error(w, "Unable to create the file for writing. Check your write access privilege", http.StatusInternalServerError)
+					return
+				}
+				defer out.Close()
+
+				_, err = io.Copy(out, file)
+				if err != nil {
+					http.Error(w, "Error occurred while saving the file", http.StatusInternalServerError)
+					return
+				}
+
+				request := `INSERT INTO Posts (USERNAME, TITLE, CONTENT, CATEGORIES, IMAGEPATH) VALUES (?, ?, ?, ?, ?);`
+				_, err = db.Exec(request, username, Title, Content, Categories, filePath)
+				if err != nil {
+					fmt.Println(err)
+				} else {
+					http.Redirect(w, r, "/", http.StatusSeeOther)
+					return
+				}
+			} else {
+				Request := `INSERT INTO Posts (USERNAME, TITLE, CONTENT, CATEGORIES, IMAGEPATH) VALUES (?, ?, ?, ?, ?);`
+				_, err := db.Exec(Request, username, Title, Content, Categories, "")
+				if err != nil {
+					log.Fatal(err)
+				}
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
 			}
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
 		}
 	}
 
@@ -426,7 +468,6 @@ func NewPost(w http.ResponseWriter, r *http.Request) {
 		if err := rows.Scan(&catego.Categorie); err != nil {
 			fmt.Println(err)
 		}
-		fmt.Println("add catégo : ", catego.Categorie)
 		categories = append(categories, catego)
 	}
 	if err := rows.Err(); err != nil {
@@ -439,7 +480,6 @@ func NewPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("final send :", categories)
 	newpost.ExecuteTemplate(w, "newPost.html", categories)
 }
 
@@ -462,17 +502,52 @@ func NewCategorie(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "POST" {
-		r.ParseForm()
-		NewCategorie := r.FormValue("newCategorie")
+		err := r.ParseMultipartForm(10 << 20) // Limite à 10 Mo
+		if err != nil {
+			http.Error(w, "Error parsing form", http.StatusBadRequest)
+			return
+		}
 
-		if NewCategorie != "" {
-			Request := `INSERT INTO Categories (TITLE) VALUES (?);`
-			_, err := db.Exec(Request, NewCategorie)
-			if err != nil {
-				fmt.Println(err)
+		newCategorie := r.FormValue("newCategorie")
+		file, handler, _ := r.FormFile("categoryImage")
+
+		if file != nil {
+			defer file.Close()
+		}
+
+		if newCategorie != "" {
+			if file != nil {
+				filePath := "./uploads/" + handler.Filename
+				out, err := os.Create(filePath)
+				if err != nil {
+					http.Error(w, "Unable to create the file for writing. Check your write access privilege", http.StatusInternalServerError)
+					return
+				}
+				defer out.Close()
+
+				_, err = io.Copy(out, file)
+				if err != nil {
+					http.Error(w, "Error occurred while saving the file", http.StatusInternalServerError)
+					return
+				}
+
+				request := `INSERT INTO Categories (TITLE, IMAGEPATH) VALUES (?, ?);`
+				_, err = db.Exec(request, newCategorie, filePath)
+				if err != nil {
+					fmt.Println(err)
+				} else {
+					http.Redirect(w, r, "/newPost", http.StatusSeeOther)
+					return
+				}
 			} else {
-				http.Redirect(w, r, "/newPost", http.StatusSeeOther)
-				return
+				request := `INSERT INTO Categories (TITLE) VALUES (?);`
+				_, err = db.Exec(request, newCategorie)
+				if err != nil {
+					fmt.Println(err)
+				} else {
+					http.Redirect(w, r, "/newPost", http.StatusSeeOther)
+					return
+				}
 			}
 		}
 	}

@@ -1,30 +1,29 @@
 <!DOCTYPE html>
 <html lang="fr">
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="/styles.css">
-        <link rel="icon" href = "logo.png" type = "image/x-icon" />
-    
-        <title>newCategorie</title>
-    </head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="icon" href="logo.png" type="image/x-icon" />
+    <title>newCategorie</title>
+</head>
 
-    <body>
-        <header>
-            <a href="/">home</a>
-        </header>
+<body>
+    <header>
+        <a href="/">home</a>
+    </header>
 
-        <p>newCategorie page</p>
+    <p>newCategorie page</p>
 
-        <br>
+    <br>
 
-        <form action="/newCategorie" method="POST">
-            <input type="text" id="newCategorie" name="newCategorie" placeholder="Categorie"> 
-
-            <input type="submit" value="Submit">
-        </form> 
-        <footer>
-        </footer>
-    </body>
+    <form action="/newCategorie" method="POST" enctype="multipart/form-data">
+        <input type="text" id="newCategorie" name="newCategorie" placeholder="Categorie" required>
+        <input type="file" id="categoryImage" name="categoryImage" accept="image/*">
+        <input type="submit" value="Submit">
+    </form>
+    <footer>
+    </footer>
+</body>
 </html>

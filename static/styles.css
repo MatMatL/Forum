@@ -115,6 +115,11 @@ header nav ul li a {
     border-radius: 5px;
 }
 
+.category-item p {
+    margin-top: 40px;
+    margin-bottom: 70px;
+}
+
 .category-item button, .post-item button, .user-item button {
     background-color: #FF6F61;
     color: white;

@@ -19,7 +19,7 @@
 
         <br>
 
-        <form action="/newPost" method="POST">
+        <form action="/newPost" method="POST" enctype="multipart/form-data">
             <input type="text" id="postTitle" name="postTitle" placeholder="Title"> 
             <input type="text" id="postContent" name="postContent" placeholder="Content"> 
             <select id="postCategories" name="postCategories" required>
@@ -27,7 +27,7 @@
                 <option value="{{.Categorie}}">{{.Categorie}}</option>
                 {{end}}
             </select>
-
+            <input type="file" id="postImage" name="postImage" accept="image/*">
             <input type="submit" value="Submit">
         </form> 
         <footer>

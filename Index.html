@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mon Forum</title>
-    <link rel="stylesheet" href="static/styles.css">
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
     <header>
@@ -32,17 +32,15 @@
                 {{range .}}
                     {{if .WithPicture}}
                     <div class="category-item">
-                        <img src="drone1.png" alt="Drone 1">
+                        <img src="{{.ImagePath}}" alt="Drone 1">
                         <h3>{{.Title}}</h3>
                         <button><a href="/post?id={{.ID}}">Voir plus</a></button>
-                        <p>Posté dans : {{.Categories}}</p>
                     </div>
                     {{else}}
                     <div class="category-item">
                         <h3>{{.Title}}</h3>
                         <p>{{.Content}}</p>
                         <button><a href="/post?id={{.ID}}">Voir plus</a></button>
-                        <p>Posté dans : {{.Categories}}</p>
                     </div>
                     {{end}}
                 {{end}}

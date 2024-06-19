@@ -15,50 +15,53 @@
     </style>
 </head>
 <body>
-    <header>
-        <a href="/"><img src="static/logo.png" alt="Logo" class="logo"></a>
-        <nav>
-            <ul>
-                <li><a href="/">Accueil</a></li>
-                <li><a href="/newPost">Nouveau post</a></li>
-                <li><a href="/">Catégories</a></li>
-                <li><a href="/profil">Profil</a></li>
-                <li><a href="/logout">Se deconnecter</a></li>
-            </ul>
-        </nav>
-    </header>
+    <div class="content-wrap">
+        <header>
+            <a href="/"><img src="static/logo.png" alt="Logo" class="logo"></a>
+            <nav>
+                <ul>
+                    <li><a href="/">Accueil</a></li>
+                    <li><a href="/newPost">Nouveau post</a></li>
+                    <li><a href="/">Catégories</a></li>
+                    <li><a href="/profil">Profil</a></li>
+                    <li><a href="/logout">Se deconnecter</a></li>
+                </ul>
+            </nav>
+        </header>
 
-    <section class="category-section" style="background-image: url('{{.ImagePath}}');">
-        <section class="welcome">
-            <h1>Categorie : {{.Name}}</h1>
-            <p>Ici vous trouverez les differents <span>posts</span> où<br>
-            les autres <span>utilisateurs</span> discutent à propos de <span>{{.Name}}</span> !</p>
-            <button><a href="/newPost">Créer un post</a></button>
+        <section class="category-section" style="background-image: url('{{.ImagePath}}');">
+            <section class="welcome">
+                <h1>Categorie : {{.Name}}</h1>
+                <p>Ici vous trouverez les differents <span>posts</span> où<br>
+                les autres <span>utilisateurs</span> discutent à propos de <span>{{.Name}}</span> !</p>
+                <button><a href="/newPost">Créer un post</a></button>
+            </section>
         </section>
-    </section>
 
-    <section class="categories">
-        <h2>Posts</h2>
-        <div class="category-list">
-            {{range .Posts}}
-                {{if .WithPicture}}
-                <div class="category-item">
-                    <img src="{{.ImagePath}}" alt="Drone 1">
-                    <h3>{{.Title}}</h3>
-                    <button><a href="/post?id={{.ID}}">Voir plus</a></button>
-                </div>
-                {{else}}
-                <div class="category-item">
-                    <h3>{{.Title}}</h3>
-                    <p>{{.Content}}</p>
-                    <button><a href="/post?id={{.ID}}">Voir plus</a></button>
-                </div>
+        <section class="categories">
+            <h2>Posts</h2>
+            <div class="category-list">
+                {{range .Posts}}
+                    {{if .WithPicture}}
+                    <div class="category-item">
+                        <img src="{{.ImagePath}}" alt="Drone 1">
+                        <h3>{{.Title}}</h3>
+                        <button><a href="/post?id={{.ID}}">Voir plus</a></button>
+                    </div>
+                    {{else}}
+                    <div class="category-item">
+                        <h3>{{.Title}}</h3>
+                        <p>{{.Content}}</p>
+                        <button><a href="/post?id={{.ID}}">Voir plus</a></button>
+                    </div>
+                    {{end}}
                 {{end}}
-            {{end}}
-        </div>
-    </section>
+            </div>
+        </section>
+    </div>
+    
     <footer>
-        <p>&copy; 2024 Mon Forum. Tous droits réservés.</p>
+        <p>&copy; 2024 DroneZone. Tous droits réservés.</p>
     </footer>
 </body>
 </html>

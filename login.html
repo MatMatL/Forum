@@ -7,37 +7,39 @@
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <header>
-        <a href="/"><img src="static/logo.png" alt="Logo" class="logo"></a>
-        <nav>
-            <ul>
-                <li><a href="/">Accueil</a></li>
-                <li><a href="/newPost">Nouveau post</a></li>
-                <li><a href="/">Catégories</a></li>
-                <li><a href="/profil">Profil</a></li>
-                <li><a href="/logout">Se deconnecter</a></li>
-            </ul>
-        </nav>
-    </header>
+    <div class="content-wrap">
+        <header>
+            <a href="/"><img src="static/logo.png" alt="Logo" class="logo"></a>
+            <nav>
+                <ul>
+                    <li><a href="/">Accueil</a></li>
+                    <li><a href="/newPost">Nouveau post</a></li>
+                    <li><a href="/">Catégories</a></li>
+                    <li><a href="/profil">Profil</a></li>
+                    <li><a href="/logout">Se deconnecter</a></li>
+                </ul>
+            </nav>
+        </header>
 
-    <p>Login page</p>
+        <section class="login-section">
+            <h2>Login page</h2>
+            <form action="/login" method="POST" class="login-form">
+                <input type="text" id="userName" name="userName" placeholder="Username/Email" class="input-field"> 
+                <input type="password" id="userPassword" name="userPassword" placeholder="Password" class="input-field">
 
-    <br>
+                <input type="submit" value="Submit" class="submit-button">
+            </form> 
 
-    <form action="/login" method="POST">
-        <input type="text" id="userName" name="userName" placeholder="Username/Email"> 
-        <input type="text" id="userPassword" name="userPassword" placeholder="Password">
-
-        <input type="submit" value="Submit">
-    </form> 
-
-    {{if .WrongUsername}} 
-        <p>Username not found</p>
-    {{else if .WrongPassword}}
-        <p>Incorrect password</p>
-    {{end}}
-    <p>Don't have an account? <a href="/register">Register here</a>.</p>
-    <footer>
+            {{if .WrongUsername}} 
+                <p class="error-message">Utilisateur introuvable</p>
+            {{else if .WrongPassword}}
+                <p class="error-message">Mot de passe incorrect</p>
+            {{end}}
+            <p>Vous n'avez pas de compte ? <a href="/register">Créez en un ici !</a>.</p>
+        </section>
+    </div>
+    
+    <footer class="black">
         <p>&copy; 2024 Mon Forum. Tous droits réservés.</p>
     </footer>
 </body>

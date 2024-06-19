@@ -8,24 +8,26 @@
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <header>
-        <a href="/"><img src="static/logo.png" alt="Logo" class="logo"></a>
-        <nav>
-            <ul>
-                <li><a href="/">Accueil</a></li>
-                <li><a href="/newPost">Nouveau post</a></li>
-                <li><a href="/">Catégories</a></li>
-                <li><a href="/profil">Profil</a></li>
-                <li><a href="/logout">Se deconnecter</a></li>
-            </ul>
-        </nav>
-    </header>
-    <h1>{{.Title}}</h1>
-    <p>{{.Content}}</p>
-    <p><small>Posted by {{.Username}} in {{.Categories}}</small></p>
-    <a href="/">home</a>
-
-    <footer>
+    <div class="content-wrap">
+        <header>
+            <a href="/"><img src="static/logo.png" alt="Logo" class="logo"></a>
+            <nav>
+                <ul>
+                    <li><a href="/">Accueil</a></li>
+                    <li><a href="/newPost">Nouveau post</a></li>
+                    <li><a href="/">Catégories</a></li>
+                    <li><a href="/profil">Profil</a></li>
+                    <li><a href="/logout">Se deconnecter</a></li>
+                </ul>
+            </nav>
+        </header>
+        <section class="welcome">
+            <h1>{{.Title}}</h1>
+            <p>{{.Content}}</p>
+            <p><small>Posted by {{.Username}} in {{.Categories}}</small></p>
+        </section>
+    </div>
+    <footer class="black">
         <p>&copy; 2024 Mon Forum. Tous droits réservés.</p>
     </footer>
 </body>

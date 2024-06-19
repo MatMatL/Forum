@@ -8,29 +8,30 @@
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-    <header>
-        <a href="/"><img src="static/logo.png" alt="Logo" class="logo"></a>
-        <nav>
-            <ul>
-                <li><a href="/">Accueil</a></li>
-                <li><a href="/newPost">Nouveau post</a></li>
-                <li><a href="/">Catégories</a></li>
-                <li><a href="/profil">Profil</a></li>
-                <li><a href="/logout">Se deconnecter</a></li>
-            </ul>
-        </nav>
-    </header>
+    <div class="content-wrap">
+        <header>
+            <a href="/"><img src="static/logo.png" alt="Logo" class="logo"></a>
+            <nav>
+                <ul>
+                    <li><a href="/">Accueil</a></li>
+                    <li><a href="/newPost">Nouveau post</a></li>
+                    <li><a href="/">Catégories</a></li>
+                    <li><a href="/profil">Profil</a></li>
+                    <li><a href="/logout">Se deconnecter</a></li>
+                </ul>
+            </nav>
+        </header>
 
-    <p>newCategorie page</p>
-
-    <br>
-
-    <form action="/newCategorie" method="POST" enctype="multipart/form-data">
-        <input type="text" id="newCategorie" name="newCategorie" placeholder="Categorie" required>
-        <input type="file" id="categoryImage" name="categoryImage" accept="image/*">
-        <input type="submit" value="Submit">
-    </form>
-    <footer>
+        <section class="login-section">
+            <h2>Créez votre catégorie !</h2>
+            <form action="/newCategorie" method="POST" enctype="multipart/form-data" class="login-form">
+                <input type="text" id="newCategorie" name="newCategorie" placeholder="Categorie" class="input-field"> 
+                <input type="file" id="categoryImage" name="categoryImage" accept="image/*" class="input-field">
+                <input type="submit" value="Submit" class="submit-button">
+            </form> 
+        </section>
+    </div>
+    <footer class="black">
         <p>&copy; 2024 Mon Forum. Tous droits réservés.</p>
     </footer>
 </body>

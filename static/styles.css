@@ -6,6 +6,20 @@ body {
     color: #333;
 }
 
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+.content-wrap {
+    flex: 1;
+}
+
 header {
     background-color: #0A0826;
     display: flex;
@@ -140,8 +154,61 @@ header nav ul li a {
     cursor: pointer;
 }
 
+.login-section {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.login-section h2 {
+    color: #0A0826;
+    margin-bottom: 80px;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.input-field {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.submit-button {
+    background-color: #FF6F61;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.submit-button:hover {
+    background-color: #FF4F41;
+}
+
+.error-message {
+    color: red;
+    margin-top: 10px;
+}
+
 footer {
     text-align: center;
     padding: 10px;
     color: #0A0826;
+}
+
+footer.black {
+    text-align: center;
+    padding: 10px;
+    background-color: #0A0826;
+    color: white;
 }

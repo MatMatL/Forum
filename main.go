@@ -151,8 +151,8 @@ func FormatingPost(posts PostData) PostData {
 	} else {
 		tempoFormated.Title = posts.Title
 	}
-	if len(posts.Content) > 70 {
-		tempoFormated.Content = posts.Content[:70] + "..."
+	if len(posts.Content) > 100 {
+		tempoFormated.Content = posts.Content[:100] + "..."
 	} else {
 		tempoFormated.Content = posts.Content
 	}
@@ -709,14 +709,6 @@ func Categorie(w http.ResponseWriter, r *http.Request) {
 	}
 
 	categorieData := getCategorieByID(id)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			http.Error(w, "categorie not found", http.StatusNotFound)
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-		return
-	}
 
 	categorieData.Posts = GetPostsByCategory(categorieData.Name)
 
@@ -817,14 +809,6 @@ func User(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userData := GetUserByID(id)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			http.Error(w, "user not found", http.StatusNotFound)
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-		return
-	}
 
 	userData.Posts = GetPostsByUsername(userData.Username)
 	user.ExecuteTemplate(w, "user.html", userData)

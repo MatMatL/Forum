@@ -30,6 +30,7 @@ var post = template.Must(template.ParseFiles("post.html"))
 var newCategorie = template.Must(template.ParseFiles("newCategorie.html"))
 var categorie = template.Must(template.ParseFiles("categorie.html"))
 var user = template.Must(template.ParseFiles("user.html"))
+var profil = template.Must(template.ParseFiles("profil.html"))
 
 var db *sql.DB
 
@@ -781,6 +782,14 @@ func GetUserByID(id int) UserData {
 	return user
 }
 
+func GetUserByUsername(username string) UserData {
+	var user UserData
+	row := db.QueryRow("SELECT ID, USERNAME, IMAGEPATH FROM Register WHERE USERNAME = ?", username)
+	row.Scan(&user.ID, &user.Username, &user.ImagePath)
+
+	return user
+}
+
 func Profil(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session")
 	if err != nil {
@@ -793,6 +802,61 @@ func Profil(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
+
+	userData := GetUserByUsername(username)
+
+	userData.Posts = GetPostsByUsername(userData.Username)
+
+	if r.Method == "POST" {
+		err := r.ParseMultipartForm(10 << 20) // Limite à 10 Mo
+		if err != nil {
+			http.Error(w, "Error parsing form", http.StatusBadRequest)
+			return
+		}
+
+		newEmail := r.FormValue("newEmail")
+		if ValidEmail(newEmail) && !AlreadyTakenEmail(newEmail) && newEmail != "" {
+			query := `UPDATE Register SET EMAIL = ? WHERE ID = ?`
+			db.Exec(query, newEmail, userData.ID)
+		}
+
+		newUserName := r.FormValue("newUserName")
+		if !AlreadyTakenUsername(newUserName) && newUserName != "" {
+			query := `UPDATE Register SET USERNAME = ? WHERE ID = ?`
+			db.Exec(query, newUserName, userData.ID)
+		}
+
+		newUserPassword := r.FormValue("newUserPassword")
+
+		if newUserPassword != "" {
+			query := `UPDATE Register SET PASSWORD = ? WHERE ID = ?`
+			db.Exec(query, newUserPassword, userData.ID)
+		}
+
+		file, handler, _ := r.FormFile("postImage")
+		if file != nil {
+			fmt.Println("prout6")
+			filePath := "./uploads/" + handler.Filename
+			out, err := os.Create(filePath)
+			if err != nil {
+				http.Error(w, "Unable to create the file for writing. Check your write access privilege", http.StatusInternalServerError)
+				return
+			}
+			defer out.Close()
+			fmt.Println("prout7")
+			_, err = io.Copy(out, file)
+			if err != nil {
+				http.Error(w, "Error occurred while saving the file", http.StatusInternalServerError)
+				return
+			}
+			fmt.Println("prout8")
+			query := `UPDATE Register SET IMAGEPATH = ? WHERE ID = ?`
+			pp, errr := db.Exec(query, filePath, userData.ID)
+			fmt.Println("prout final :", pp, errr)
+		}
+	}
+
+	profil.ExecuteTemplate(w, "profil.html", userData)
 }
 
 func User(w http.ResponseWriter, r *http.Request) {

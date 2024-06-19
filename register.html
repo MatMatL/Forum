@@ -33,9 +33,9 @@
             </form> 
 
             {{if .WrongEmail}} 
-                <p class="error-message">invalide email or email already taken</p>
+                <p class="error-message">email invalide</p>
             {{else if .WrongUsername}}
-                <p class="error-message">Username already taken</p>
+                <p class="error-message">nom d'utilisateur invalide</p>
             {{end}}
             <p>Vous n'avez pas de compte ? <a href="/register">Créez en un ici !</a>.</p>
         </section>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="static/logo.png" type="image/x-icon" />
+    <title>DroneZone</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="content-wrap">
+        <header>
+            <a href="/"><img src="static/logo.png" alt="Logo" class="logo"></a>
+            <nav>
+                <ul>
+                    <li><a href="/">Accueil</a></li>
+                    <li><a href="/newPost">Nouveau post</a></li>
+                    <li><a href="/">Catégories</a></li>
+                    <li><a href="/profil">Profil</a></li>
+                    <li><a href="/logout">Se deconnecter</a></li>
+                </ul>
+            </nav>
+        </header>
+        <br>
+
+        <h1>{{.Username}}</h1>
+
+        <section class="login-section">
+            <form action="/profil" method="POST" enctype="multipart/form-data" class="login-form">
+            <input type="text" id="newEmail" name="newEmail" placeholder="Changer l'email" class="input-field"> 
+            <input type="text" id="newUserName" name="newUserName" placeholder="Changer le nom d'utilisateur" class="input-field"> 
+            <input type="text" id="newUserPassword" name="newUserPassword" placeholder="Changer le mot de passe" class="input-field">
+            <input type="file" id="postImage" name="postImage" accept="image/*" placeholder="Changer de photo de profile" class="input-field">
+
+            <input type="submit" value="Submit" class="submit-button">
+            </form> 
+        </section>
+
+        <section class="categories">
+            <h2>Posts</h2>
+            <div class="category-list">
+                {{range .Posts}}
+                    {{if .WithPicture}}
+                    <div class="category-item">
+                        <img src="{{.ImagePath}}" alt="Drone 1">
+                        <h3>{{.Title}}</h3>
+                        <button><a href="/post?id={{.ID}}">Voir plus</a></button>
+                    </div>
+                    {{else}}
+                    <div class="category-item">
+                        <h3>{{.Title}}</h3>
+                        <p>{{.Content}}</p>
+                        <button><a href="/post?id={{.ID}}">Voir plus</a></button>
+                    </div>
+                    {{end}}
+                {{end}}
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 DroneZone. Tous droits réservés.</p>
+    </footer>
+</body>
+</html>

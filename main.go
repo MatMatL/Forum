@@ -28,6 +28,7 @@ var register = template.Must(template.ParseFiles("register.html"))
 var newpost = template.Must(template.ParseFiles("newPost.html"))
 var post = template.Must(template.ParseFiles("post.html"))
 var newCategorie = template.Must(template.ParseFiles("newCategorie.html"))
+var categorie = template.Must(template.ParseFiles("categorie.html"))
 
 var db *sql.DB
 
@@ -49,6 +50,7 @@ func main() {
 	http.HandleFunc("/post", Post)
 	http.HandleFunc("/profil", Profil)
 	http.HandleFunc("/newCategorie", NewCategorie)
+	http.HandleFunc("/categorie", Categorie)
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
@@ -108,53 +110,29 @@ func InitTables() {
 ////////////////////////////////////////////////////////////////
 
 func Index(w http.ResponseWriter, r *http.Request) {
-	posts := getPosts()
-	posts = FormatingPosts(posts)
-	index.ExecuteTemplate(w, "index.html", posts)
+	var data IndexData
+	data.Posts = FormatingPosts()
+	data.Categories = FormatingCategories()
+
+	index.ExecuteTemplate(w, "index.html", data)
 }
 
-type PostData struct {
-	ID          int
-	Username    string
-	Title       string
-	Content     string
-	Categories  string
-	ImagePath   string
-	WithPicture bool
+type IndexData struct {
+	Posts      []PostData
+	Categories []CategorieData
 }
 
-func getPosts() []PostData {
-	rows, err := db.Query("SELECT ID, USERNAME, TITLE, CONTENT, CATEGORIES, IMAGEPATH FROM Posts")
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer rows.Close()
-
-	var posts []PostData
-	for rows.Next() {
-		var post PostData
-		if err := rows.Scan(&post.ID, &post.Username, &post.Title, &post.Content, &post.Categories, &post.ImagePath); err != nil {
-			fmt.Println(err)
-		}
-		posts = append(posts, post)
-	}
-	if err := rows.Err(); err != nil {
-		fmt.Println(err)
-	}
-
-	return posts
-}
-
-func FormatingPosts(posts []PostData) []PostData {
+func FormatingPosts() []PostData {
+	data := getPosts()
 	var formatedPosts []PostData
-	if len(posts) >= 6 {
+	if len(data) >= 6 {
 		for i := 0; i < 6; i++ {
-			tempoFormated := FormatingPost(posts[i])
+			tempoFormated := FormatingPost(data[i])
 			formatedPosts = append(formatedPosts, tempoFormated)
 		}
 	} else {
-		for i := 0; i < len(posts); i++ {
-			tempoFormated := FormatingPost(posts[i])
+		for i := 0; i < len(data); i++ {
+			tempoFormated := FormatingPost(data[i])
 			formatedPosts = append(formatedPosts, tempoFormated)
 		}
 	}
@@ -182,6 +160,22 @@ func FormatingPost(posts PostData) PostData {
 	}
 	tempoFormated.ID = posts.ID
 	return tempoFormated
+}
+
+func FormatingCategories() []CategorieData {
+	data := GetCategories()
+	var formatedCategories []CategorieData
+	if len(data) >= 6 {
+		for i := 0; i < 6; i++ {
+			formatedCategories = append(formatedCategories, data[i])
+		}
+	} else {
+		for i := 0; i < len(data); i++ {
+			formatedCategories = append(formatedCategories, data[i])
+		}
+	}
+
+	return formatedCategories
 }
 
 ////////////////////////////////////////////////////////////////
@@ -559,6 +553,16 @@ func NewCategorie(w http.ResponseWriter, r *http.Request) {
 /////////                    POST                      /////////
 ////////////////////////////////////////////////////////////////
 
+type PostData struct {
+	ID          int
+	Username    string
+	Title       string
+	Content     string
+	ImagePath   string
+	WithPicture bool
+	Categories  string
+}
+
 func Post(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
@@ -584,6 +588,28 @@ func Post(w http.ResponseWriter, r *http.Request) {
 	post.ExecuteTemplate(w, "post.html", postData)
 }
 
+func getPosts() []PostData {
+	rows, err := db.Query("SELECT ID, USERNAME, TITLE, CONTENT, CATEGORIES, IMAGEPATH FROM Posts")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer rows.Close()
+
+	var posts []PostData
+	for rows.Next() {
+		var post PostData
+		if err := rows.Scan(&post.ID, &post.Username, &post.Title, &post.Content, &post.Categories, &post.ImagePath); err != nil {
+			fmt.Println(err)
+		}
+		posts = append(posts, post)
+	}
+	if err := rows.Err(); err != nil {
+		fmt.Println(err)
+	}
+
+	return posts
+}
+
 func getPostByID(id int) (PostData, error) {
 	var post PostData
 	row := db.QueryRow("SELECT ID, USERNAME, TITLE, CONTENT, CATEGORIES FROM Posts WHERE ID = ?", id)
@@ -592,6 +618,73 @@ func getPostByID(id int) (PostData, error) {
 		return post, err
 	}
 	return post, nil
+}
+
+////////////////////////////////////////////////////////////////
+/////////                 Categorie                    /////////
+////////////////////////////////////////////////////////////////
+
+type CategorieData struct {
+	Name      string
+	ImagePath string
+	ID        int
+}
+
+func Categorie(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		http.Error(w, "Missing ID parameter", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID parameter", http.StatusBadRequest)
+		return
+	}
+
+	categorieData, err := getCategorieByID(id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Post not found", http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+	categorie.ExecuteTemplate(w, "categorie.html", categorieData)
+}
+
+func GetCategories() []CategorieData {
+	rows, err := db.Query("SELECT ID, TITLE, IMAGEPATH FROM Categories")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer rows.Close()
+
+	var categories []CategorieData
+	for rows.Next() {
+		var categorie CategorieData
+		if err := rows.Scan(&categorie.ID, &categorie.Name, &categorie.ImagePath); err != nil {
+			fmt.Println(err)
+		}
+		categories = append(categories, categorie)
+	}
+	if err := rows.Err(); err != nil {
+		fmt.Println(err)
+	}
+
+	return categories
+}
+
+func getCategorieByID(id int) (CategorieData, error) {
+	var categorie CategorieData
+	row := db.QueryRow("SELECT ID, TITLE, IMAGEPATH FROM Posts WHERE ID = ?", id)
+	err := row.Scan(&categorie.ID, &categorie.Name, &categorie.ImagePath)
+	if err != nil {
+		return categorie, err
+	}
+	return categorie, nil
 }
 
 ////////////////////////////////////////////////////////////////

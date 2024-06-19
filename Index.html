@@ -29,7 +29,7 @@
         <section class="categories">
             <h2>Posts</h2>
             <div class="category-list">
-                {{range .}}
+                {{range .Posts}}
                     {{if .WithPicture}}
                     <div class="category-item">
                         <img src="{{.ImagePath}}" alt="Drone 1">
@@ -51,18 +51,13 @@
         <section class="posts">
             <h2>Catégories</h2>
             <div class="post-list">
-                <div class="post-item">
-                    <img src="post1.png" alt="Post 1">
-                    <h3>Bug multi liftoff</h3>
-                    <p>Hello ! J’ai un bug avec mon liftoff, quand je vais dans le section pour jouer en multi j’atterrie sur un ch...</p>
-                    <button>lire le post</button>
-                </div>
-                <div class="post-item">
-                    <img src="post2.png" alt="Post 2">
-                    <h3>Mon nouveau drone</h3>
-                    <p>Je veux vous partager mon nouveau drone.Je viens de finir de le monter, je fini les derniers setup sur betaf...</p>
-                    <button>lire le post</button>
-                </div>
+                {{range .Categories}}
+                    <div class="post-item">
+                        <img src="{{.ImagePath}}" alt="">
+                        <h3>{{.Name}}</h3>
+                        <button><a href="/categorie?id={{.ID}}">Voir plus</a></button>
+                    </div>
+                {{end}}
             </div>
             <button class="view-all">Voir les catégories</button>
         </section>

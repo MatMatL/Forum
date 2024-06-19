@@ -1,38 +1,44 @@
 <!DOCTYPE html>
 <html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DroneZone</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <a href="/"><img src="static/logo.png" alt="Logo" class="logo"></a>
+        <nav>
+            <ul>
+                <li><a href="/">Accueil</a></li>
+                <li><a href="/newPost">Nouveau post</a></li>
+                <li><a href="/">Catégories</a></li>
+                <li><a href="/profil">Profil</a></li>
+                <li><a href="/logout">Se deconnecter</a></li>
+            </ul>
+        </nav>
+    </header>
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="/styles.css">
-        <link rel="icon" href = "logo.png" type = "image/x-icon" />
-    
-        <title>Login</title>
-    </head>
+    <p>Login page</p>
 
-    <body>
-        <header>
-            <a href="/">home</a>
-        </header>
+    <br>
 
-        <p>Login page</p>
+    <form action="/login" method="POST">
+        <input type="text" id="userName" name="userName" placeholder="Username/Email"> 
+        <input type="text" id="userPassword" name="userPassword" placeholder="Password">
 
-        <br>
+        <input type="submit" value="Submit">
+    </form> 
 
-        <form action="/login" method="POST">
-            <input type="text" id="userName" name="userName" placeholder="Username/Email"> 
-            <input type="text" id="userPassword" name="userPassword" placeholder="Password">
-
-            <input type="submit" value="Submit">
-        </form> 
-
-        {{if .WrongUsername}} 
-            <p>Username not found</p>
-        {{else if .WrongPassword}}
-            <p>Incorrect password</p>
-        {{end}}
-        <footer>
-            <p>Don't have an account? <a href="/register">Register here</a>.</p>
-        </footer>
-    </body>
+    {{if .WrongUsername}} 
+        <p>Username not found</p>
+    {{else if .WrongPassword}}
+        <p>Incorrect password</p>
+    {{end}}
+    <p>Don't have an account? <a href="/register">Register here</a>.</p>
+    <footer>
+        <p>&copy; 2024 Mon Forum. Tous droits réservés.</p>
+    </footer>
+</body>
 </html>

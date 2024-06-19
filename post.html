@@ -1,13 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>{{.Title}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="static/logo.png" type="image/x-icon" />
+    <title>DroneZone</title>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
+    <header>
+        <a href="/"><img src="static/logo.png" alt="Logo" class="logo"></a>
+        <nav>
+            <ul>
+                <li><a href="/">Accueil</a></li>
+                <li><a href="/newPost">Nouveau post</a></li>
+                <li><a href="/">Catégories</a></li>
+                <li><a href="/profil">Profil</a></li>
+                <li><a href="/logout">Se deconnecter</a></li>
+            </ul>
+        </nav>
+    </header>
     <h1>{{.Title}}</h1>
     <p>{{.Content}}</p>
     <p><small>Posted by {{.Username}} in {{.Categories}}</small></p>
     <a href="/">home</a>
+
+    <footer>
+        <p>&copy; 2024 Mon Forum. Tous droits réservés.</p>
+    </footer>
 </body>
 </html>

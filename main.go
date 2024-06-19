@@ -662,6 +662,28 @@ func GetPostsByUsername(username string) []PostData {
 	return posts
 }
 
+func GetPostsByCategory(category string) []PostData {
+	rows, err := db.Query("SELECT ID, TITLE, CONTENT, IMAGEPATH FROM Posts WHERE CATEGORIES = ?", category)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer rows.Close()
+
+	var posts []PostData
+	for rows.Next() {
+		var post PostData
+		if err := rows.Scan(&post.ID, &post.Title, &post.Content, &post.ImagePath); err != nil {
+			fmt.Println(err)
+		}
+		posts = append(posts, post)
+	}
+	if err := rows.Err(); err != nil {
+		fmt.Println(err)
+	}
+
+	return posts
+}
+
 ////////////////////////////////////////////////////////////////
 /////////                 Categorie                    /////////
 ////////////////////////////////////////////////////////////////
@@ -670,6 +692,7 @@ type CategorieData struct {
 	Name      string
 	ImagePath string
 	ID        int
+	Posts     []PostData
 }
 
 func Categorie(w http.ResponseWriter, r *http.Request) {
@@ -685,7 +708,7 @@ func Categorie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	categorieData, err := getCategorieByID(id)
+	categorieData := getCategorieByID(id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "categorie not found", http.StatusNotFound)
@@ -694,6 +717,9 @@ func Categorie(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	categorieData.Posts = GetPostsByCategory(categorieData.Name)
+
 	categorie.ExecuteTemplate(w, "categorie.html", categorieData)
 }
 
@@ -703,13 +729,10 @@ func GetCategories() []CategorieData {
 		fmt.Println(err)
 	}
 	defer rows.Close()
-
 	var categories []CategorieData
 	for rows.Next() {
 		var categorie CategorieData
-		if err := rows.Scan(&categorie.ID, &categorie.Name, &categorie.ImagePath); err != nil {
-			fmt.Println(err)
-		}
+		rows.Scan(&categorie.ID, &categorie.Name, &categorie.ImagePath)
 		categories = append(categories, categorie)
 	}
 	if err := rows.Err(); err != nil {
@@ -719,14 +742,12 @@ func GetCategories() []CategorieData {
 	return categories
 }
 
-func getCategorieByID(id int) (CategorieData, error) {
+func getCategorieByID(id int) CategorieData {
 	var categorie CategorieData
 	row := db.QueryRow("SELECT ID, TITLE, IMAGEPATH FROM Categories WHERE ID = ?", id)
-	err := row.Scan(&categorie.ID, &categorie.Name, &categorie.ImagePath)
-	if err != nil {
-		return categorie, err
-	}
-	return categorie, nil
+	row.Scan(&categorie.ID, &categorie.Name, &categorie.ImagePath)
+
+	return categorie
 }
 
 ////////////////////////////////////////////////////////////////
@@ -750,9 +771,7 @@ func GetUser() []UserData {
 	var users []UserData
 	for rows.Next() {
 		var user UserData
-		if err := rows.Scan(&user.ID, &user.Username, &user.ImagePath); err != nil {
-			fmt.Println(err)
-		}
+		rows.Scan(&user.ID, &user.Username, &user.ImagePath)
 		users = append(users, user)
 	}
 	if err := rows.Err(); err != nil {
@@ -762,14 +781,12 @@ func GetUser() []UserData {
 	return users
 }
 
-func GetUserByID(id int) (UserData, error) {
+func GetUserByID(id int) UserData {
 	var user UserData
-	row := db.QueryRow("SELECT ID, TITLE, IMAGEPATH FROM Categories WHERE ID = ?", id)
-	err := row.Scan(&user.ID, &user.Username, &user.ImagePath)
-	if err != nil {
-		return user, err
-	}
-	return user, nil
+	row := db.QueryRow("SELECT ID, USERNAME, IMAGEPATH FROM Register WHERE ID = ?", id)
+	row.Scan(&user.ID, &user.Username, &user.ImagePath)
+
+	return user
 }
 
 func Profil(w http.ResponseWriter, r *http.Request) {
@@ -799,7 +816,7 @@ func User(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userData, err := GetUserByID(id)
+	userData := GetUserByID(id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "user not found", http.StatusNotFound)

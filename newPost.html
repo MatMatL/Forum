@@ -1,37 +1,44 @@
 <!DOCTYPE html>
 <html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="static/logo.png" type="image/x-icon" />
+    <title>DroneZone</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <header>
+        <a href="/"><img src="static/logo.png" alt="Logo" class="logo"></a>
+        <nav>
+            <ul>
+                <li><a href="/">Accueil</a></li>
+                <li><a href="/newPost">Nouveau post</a></li>
+                <li><a href="/">Catégories</a></li>
+                <li><a href="/profil">Profil</a></li>
+                <li><a href="/logout">Se deconnecter</a></li>
+            </ul>
+        </nav>
+    </header>
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="/styles.css">
-        <link rel="icon" href = "logo.png" type = "image/x-icon" />
-    
-        <title>NewPost</title>
-    </head>
+    <p>NewPost page</p>
 
-    <body>
-        <header>
-            <a href="/">home</a>
-        </header>
+    <br>
 
-        <p>NewPost page</p>
-
-        <br>
-
-        <form action="/newPost" method="POST" enctype="multipart/form-data">
-            <input type="text" id="postTitle" name="postTitle" placeholder="Title"> 
-            <input type="text" id="postContent" name="postContent" placeholder="Content"> 
-            <select id="postCategories" name="postCategories" required>
-                {{range .}}
-                <option value="{{.Categorie}}">{{.Categorie}}</option>
-                {{end}}
-            </select>
-            <input type="file" id="postImage" name="postImage" accept="image/*">
-            <input type="submit" value="Submit">
-        </form> 
-        <footer>
-            <a href="/newCategorie">Créer une catégorie ?</a>
-        </footer>
-    </body>
+    <form action="/newPost" method="POST" enctype="multipart/form-data">
+        <input type="text" id="postTitle" name="postTitle" placeholder="Title"> 
+        <input type="text" id="postContent" name="postContent" placeholder="Content"> 
+        <select id="postCategories" name="postCategories" required>
+            {{range .}}
+            <option value="{{.Categorie}}">{{.Categorie}}</option>
+            {{end}}
+        </select>
+        <input type="file" id="postImage" name="postImage" accept="image/*">
+        <input type="submit" value="Submit">
+    </form> 
+        <a href="/newCategorie">Créer une catégorie ?</a>
+    <footer>
+        <p>&copy; 2024 Mon Forum. Tous droits réservés.</p>
+    </footer>
+</body>
 </html>

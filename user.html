@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{.Username}}</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <h1>{{.Username}}</h1>
+    <img src="{{.ImagePath}}" alt="{{.Username}} profil pic">
+    <a href="/">home</a>
+
+    <br>
+
+    <section class="categories">
+        <h2>Posts</h2>
+        <div class="category-list">
+            {{range .Posts}}
+                {{if .WithPicture}}
+                <div class="category-item">
+                    <img src="{{.ImagePath}}" alt="Drone 1">
+                    <h3>{{.Title}}</h3>
+                    <button><a href="/post?id={{.ID}}">Voir plus</a></button>
+                </div>
+                {{else}}
+                <div class="category-item">
+                    <h3>{{.Title}}</h3>
+                    <p>{{.Content}}</p>
+                    <button><a href="/post?id={{.ID}}">Voir plus</a></button>
+                </div>
+                {{end}}
+            {{end}}
+        </div>
+    </section>
+</body>
+</html>

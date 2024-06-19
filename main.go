@@ -29,6 +29,7 @@ var newpost = template.Must(template.ParseFiles("newPost.html"))
 var post = template.Must(template.ParseFiles("post.html"))
 var newCategorie = template.Must(template.ParseFiles("newCategorie.html"))
 var categorie = template.Must(template.ParseFiles("categorie.html"))
+var user = template.Must(template.ParseFiles("user.html"))
 
 var db *sql.DB
 
@@ -51,6 +52,7 @@ func main() {
 	http.HandleFunc("/profil", Profil)
 	http.HandleFunc("/newCategorie", NewCategorie)
 	http.HandleFunc("/categorie", Categorie)
+	http.HandleFunc("/user", User)
 
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
@@ -69,7 +71,8 @@ func InitTables() {
 		ID INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
 		EMAIL          TEXT    NOT NULL UNIQUE,
 		USERNAME       TEXT    NOT NULL UNIQUE,
-		PASSWORD       TEXT    NOT NULL
+		PASSWORD       TEXT    NOT NULL,
+		IMAGEPATH      TEXT
 	);
 	`
 	db.Exec(Register)
@@ -97,8 +100,8 @@ func InitTables() {
 
 	Sessions := `
 	CREATE TABLE IF NOT EXISTS Sessions (
-		UUID TEXT PRIMARY KEY UNIQUE,
-		USERNAME TEXT NOT NULL,
+		UUID       TEXT PRIMARY KEY UNIQUE,
+		USERNAME   TEXT     NOT NULL,
 		EXPIRATION DATETIME NOT NULL
 	);
 	`
@@ -109,24 +112,25 @@ func InitTables() {
 /////////                   INDEX                      /////////
 ////////////////////////////////////////////////////////////////
 
+type IndexData struct {
+	Posts      []PostData
+	Categories []CategorieData
+	Users      []UserData
+}
+
 func Index(w http.ResponseWriter, r *http.Request) {
 	var data IndexData
 	data.Posts = FormatingPosts()
 	data.Categories = FormatingCategories()
-
+	data.Users = FormatingUsers()
 	index.ExecuteTemplate(w, "index.html", data)
 }
 
-type IndexData struct {
-	Posts      []PostData
-	Categories []CategorieData
-}
-
 func FormatingPosts() []PostData {
-	data := getPosts()
+	data := GetPosts()
 	var formatedPosts []PostData
-	if len(data) >= 6 {
-		for i := 0; i < 6; i++ {
+	if len(data) >= 7 {
+		for i := 0; i < 7; i++ {
 			tempoFormated := FormatingPost(data[i])
 			formatedPosts = append(formatedPosts, tempoFormated)
 		}
@@ -165,8 +169,8 @@ func FormatingPost(posts PostData) PostData {
 func FormatingCategories() []CategorieData {
 	data := GetCategories()
 	var formatedCategories []CategorieData
-	if len(data) >= 6 {
-		for i := 0; i < 6; i++ {
+	if len(data) >= 4 {
+		for i := 0; i < 4; i++ {
 			formatedCategories = append(formatedCategories, data[i])
 		}
 	} else {
@@ -176,6 +180,22 @@ func FormatingCategories() []CategorieData {
 	}
 
 	return formatedCategories
+}
+
+func FormatingUsers() []UserData {
+	Users := GetUser()
+	var formatedUsers []UserData
+	if len(Users) >= 4 {
+		for i := 0; i < 4; i++ {
+			formatedUsers = append(formatedUsers, Users[i])
+		}
+	} else {
+		for i := 0; i < len(Users); i++ {
+			formatedUsers = append(formatedUsers, Users[i])
+		}
+	}
+
+	return formatedUsers
 }
 
 ////////////////////////////////////////////////////////////////
@@ -588,7 +608,7 @@ func Post(w http.ResponseWriter, r *http.Request) {
 	post.ExecuteTemplate(w, "post.html", postData)
 }
 
-func getPosts() []PostData {
+func GetPosts() []PostData {
 	rows, err := db.Query("SELECT ID, USERNAME, TITLE, CONTENT, CATEGORIES, IMAGEPATH FROM Posts")
 	if err != nil {
 		fmt.Println(err)
@@ -620,6 +640,28 @@ func getPostByID(id int) (PostData, error) {
 	return post, nil
 }
 
+func GetPostsByUsername(username string) []PostData {
+	rows, err := db.Query("SELECT ID, USERNAME, TITLE, CONTENT, CATEGORIES, IMAGEPATH FROM Posts WHERE username = ?", username)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer rows.Close()
+
+	var posts []PostData
+	for rows.Next() {
+		var post PostData
+		if err := rows.Scan(&post.ID, &post.Username, &post.Title, &post.Content, &post.Categories, &post.ImagePath); err != nil {
+			fmt.Println(err)
+		}
+		posts = append(posts, post)
+	}
+	if err := rows.Err(); err != nil {
+		fmt.Println(err)
+	}
+
+	return posts
+}
+
 ////////////////////////////////////////////////////////////////
 /////////                 Categorie                    /////////
 ////////////////////////////////////////////////////////////////
@@ -646,7 +688,7 @@ func Categorie(w http.ResponseWriter, r *http.Request) {
 	categorieData, err := getCategorieByID(id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			http.Error(w, "Post not found", http.StatusNotFound)
+			http.Error(w, "categorie not found", http.StatusNotFound)
 		} else {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -679,7 +721,7 @@ func GetCategories() []CategorieData {
 
 func getCategorieByID(id int) (CategorieData, error) {
 	var categorie CategorieData
-	row := db.QueryRow("SELECT ID, TITLE, IMAGEPATH FROM Posts WHERE ID = ?", id)
+	row := db.QueryRow("SELECT ID, TITLE, IMAGEPATH FROM Categories WHERE ID = ?", id)
 	err := row.Scan(&categorie.ID, &categorie.Name, &categorie.ImagePath)
 	if err != nil {
 		return categorie, err
@@ -690,6 +732,45 @@ func getCategorieByID(id int) (CategorieData, error) {
 ////////////////////////////////////////////////////////////////
 /////////                    PROFIL                    /////////
 ////////////////////////////////////////////////////////////////
+
+type UserData struct {
+	ID        int
+	Username  string
+	ImagePath string
+	Posts     []PostData
+}
+
+func GetUser() []UserData {
+	rows, err := db.Query("SELECT ID, USERNAME, IMAGEPATH FROM Register")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer rows.Close()
+
+	var users []UserData
+	for rows.Next() {
+		var user UserData
+		if err := rows.Scan(&user.ID, &user.Username, &user.ImagePath); err != nil {
+			fmt.Println(err)
+		}
+		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		fmt.Println(err)
+	}
+
+	return users
+}
+
+func GetUserByID(id int) (UserData, error) {
+	var user UserData
+	row := db.QueryRow("SELECT ID, TITLE, IMAGEPATH FROM Categories WHERE ID = ?", id)
+	err := row.Scan(&user.ID, &user.Username, &user.ImagePath)
+	if err != nil {
+		return user, err
+	}
+	return user, nil
+}
 
 func Profil(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session")
@@ -703,6 +784,33 @@ func Profil(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
+}
+
+func User(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		http.Error(w, "Missing ID parameter", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID parameter", http.StatusBadRequest)
+		return
+	}
+
+	userData, err := GetUserByID(id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "user not found", http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	userData.Posts = GetPostsByUsername(userData.Username)
+	user.ExecuteTemplate(w, "user.html", userData)
 }
 
 ////////////////////////////////////////////////////////////////

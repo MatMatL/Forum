@@ -65,21 +65,13 @@
         <section class="users">
             <h2>Autres utilisateurs</h2>
             <div class="user-list">
-                <div class="user-item">
-                    <img src="user1.png" alt="User 1">
-                    <h3>Offerville</h3>
-                    <button>voir le profil</button>
-                </div>
-                <div class="user-item">
-                    <img src="user2.png" alt="User 2">
-                    <h3>MatMat</h3>
-                    <button>voir le profil</button>
-                </div>
-                <div class="user-item">
-                    <img src="user3.png" alt="User 3">
-                    <h3>Gaper</h3>
-                    <button>voir le profil</button>
-                </div>
+                {{range .Users}}
+                    <div class="user-item">
+                        <img src="{{.ImagePath}}" alt="">
+                        <h3>{{.Username}}</h3>
+                        <button><a href="/user?id={{.ID}}">Voir plus</a></button>
+                    </div>
+                {{end}}
             </div>
             <button class="view-all">Voir plus d'utilisateurs</button>
         </section>

@@ -4,15 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mon Forum</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="static/styles.css">
 </head>
 <body>
     <header>
-        <img src="logo.png" alt="Logo" class="logo">
+        <img src="static/logo.png" alt="Logo" class="logo">
         <nav>
             <ul>
-                <li><a href="#">Catégories</a></li>
-                <li><a href="#">Profil</a></li>
+                <li><a href="/newPost">Nouveau post</a></li>
+                <li><a href="/">Catégories</a></li>
+                <li><a href="/profil">Profil</a></li>
+                <li><a href="/logout">Se deconnecter</a></li>
             </ul>
         </nav>
     </header>
@@ -21,33 +23,35 @@
             <h1>Bienvenue !</h1>
             <p>Plongez dans le monde du <span>drones</span>.<br>
             Rejoignez notre <span>communauté</span> de fans et d'experts.</p>
-            <button>Créer un compte</button>
+            <button><a href="/login">Créer un compte</a></button>
         </section>
 
         <section class="categories">
-            <h2>Catégories</h2>
+            <h2>Posts</h2>
             <div class="category-list">
-                <div class="category-item">
-                    <img src="drone1.png" alt="Drone 1">
-                    <h3>Nouveaux drones DJI</h3>
-                    <button>Voir plus</button>
-                </div>
-                <div class="category-item">
-                    <img src="drone2.png" alt="Drone 2">
-                    <h3>Comment monter son drone seul ?</h3>
-                    <button>Voir plus</button>
-                </div>
-                <div class="category-item">
-                    <img src="drone3.png" alt="Drone 3">
-                    <h3>Problèmes avec votre drone ?</h3>
-                    <button>Voir plus</button>
-                </div>
+                {{range .}}
+                    {{if .WithPicture}}
+                    <div class="category-item">
+                        <img src="drone1.png" alt="Drone 1">
+                        <h3>{{.Title}}</h3>
+                        <button><a href="/post?id={{.ID}}">Voir plus</a></button>
+                        <p>Posté dans : {{.Categories}}</p>
+                    </div>
+                    {{else}}
+                    <div class="category-item">
+                        <h3>{{.Title}}</h3>
+                        <p>{{.Content}}</p>
+                        <button><a href="/post?id={{.ID}}">Voir plus</a></button>
+                        <p>Posté dans : {{.Categories}}</p>
+                    </div>
+                    {{end}}
+                {{end}}
             </div>
-            <button class="view-all">Voir les catégories</button>
+            <button class="view-all">Voir tous les posts</button>
         </section>
 
         <section class="posts">
-            <h2>Posts</h2>
+            <h2>Catégories</h2>
             <div class="post-list">
                 <div class="post-item">
                     <img src="post1.png" alt="Post 1">
@@ -62,7 +66,7 @@
                     <button>lire le post</button>
                 </div>
             </div>
-            <button class="view-all">Voir tous les posts</button>
+            <button class="view-all">Voir les catégories</button>
         </section>
 
         <section class="users">

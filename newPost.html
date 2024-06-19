@@ -22,11 +22,16 @@
         <form action="/newPost" method="POST">
             <input type="text" id="postTitle" name="postTitle" placeholder="Title"> 
             <input type="text" id="postContent" name="postContent" placeholder="Content"> 
-            <input type="text" id="postCategories" name="postCategories" placeholder="Categories">
+            <select id="postCategories" name="postCategories" required>
+                {{range .}}
+                <option value="{{.Categorie}}">{{.Categorie}}</option>
+                {{end}}
+            </select>
 
             <input type="submit" value="Submit">
         </form> 
         <footer>
+            <a href="/newCategorie">Créer une catégorie ?</a>
         </footer>
     </body>
 </html>

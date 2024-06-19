@@ -25,6 +25,7 @@ var login = template.Must(template.ParseFiles("login.html"))
 var register = template.Must(template.ParseFiles("register.html"))
 var newpost = template.Must(template.ParseFiles("newPost.html"))
 var post = template.Must(template.ParseFiles("post.html"))
+var newCategorie = template.Must(template.ParseFiles("newCategorie.html"))
 
 var db *sql.DB
 
@@ -44,6 +45,10 @@ func main() {
 	http.HandleFunc("/logout", Logout)
 	http.HandleFunc("/newPost", NewPost)
 	http.HandleFunc("/post", Post)
+	http.HandleFunc("/profil", Profil)
+	http.HandleFunc("/newCategorie", NewCategorie)
+
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	fmt.Println("//localhost:8080")
 	http.ListenAndServe(port, nil)
@@ -75,6 +80,14 @@ func InitTables() {
 	`
 	db.Exec(Posts)
 
+	Categories := `
+	CREATE TABLE IF NOT EXISTS Categories (
+		ID INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+		TITLE             TEXT    NOT NULL UNIQUE
+	);
+	`
+	db.Exec(Categories)
+
 	Sessions := `
 	CREATE TABLE IF NOT EXISTS Sessions (
 		UUID TEXT PRIMARY KEY UNIQUE,
@@ -91,15 +104,17 @@ func InitTables() {
 
 func Index(w http.ResponseWriter, r *http.Request) {
 	posts := getPosts()
+	posts = FormatingPost(posts)
 	index.ExecuteTemplate(w, "index.html", posts)
 }
 
 type PostData struct {
-	ID         int
-	Username   string
-	Title      string
-	Content    string
-	Categories string
+	ID          int
+	Username    string
+	Title       string
+	Content     string
+	Categories  string
+	WithPicture bool
 }
 
 func getPosts() []PostData {
@@ -115,6 +130,7 @@ func getPosts() []PostData {
 		if err := rows.Scan(&post.ID, &post.Username, &post.Title, &post.Content, &post.Categories); err != nil {
 			fmt.Println(err)
 		}
+		fmt.Println(post.Categories)
 		posts = append(posts, post)
 	}
 	if err := rows.Err(); err != nil {
@@ -122,6 +138,44 @@ func getPosts() []PostData {
 	}
 
 	return posts
+}
+
+func FormatingPost(posts []PostData) []PostData {
+	var formatedPosts []PostData
+	if len(posts) >= 6 {
+		for i := 0; i < 6; i++ {
+			var tempoFormated PostData
+			if len(posts[i].Title) > 20 {
+				tempoFormated.Title = posts[i].Title[:25] + "..."
+			} else {
+				tempoFormated.Title = posts[i].Title
+			}
+			if len(posts[i].Content) > 70 {
+				tempoFormated.Content = posts[i].Content[:70] + "..."
+			} else {
+				tempoFormated.Content = posts[i].Content
+			}
+			tempoFormated.ID = posts[i].ID
+			formatedPosts = append(formatedPosts, tempoFormated)
+		}
+	} else {
+		for i := 0; i < len(posts); i++ {
+			var tempoFormated PostData
+			if len(posts[i].Title) > 25 {
+				tempoFormated.Title = posts[i].Title[:25] + "..."
+			} else {
+				tempoFormated.Title = posts[i].Title
+			}
+			if len(posts[i].Content) > 70 {
+				tempoFormated.Content = posts[i].Content[:70] + "..."
+			} else {
+				tempoFormated.Content = posts[i].Content
+			}
+			formatedPosts = append(formatedPosts, tempoFormated)
+		}
+	}
+
+	return formatedPosts
 }
 
 ////////////////////////////////////////////////////////////////
@@ -322,6 +376,10 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 /////////                  NEW POST                    /////////
 ////////////////////////////////////////////////////////////////
 
+type CategoriesStruct struct {
+	Categorie string
+}
+
 func NewPost(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session")
 	if err != nil {
@@ -355,7 +413,71 @@ func NewPost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	newpost.ExecuteTemplate(w, "newPost.html", nil)
+	rows, err := db.Query("SELECT TITLE FROM Categories")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer rows.Close()
+
+	var categories []CategoriesStruct
+	for rows.Next() {
+		var catego CategoriesStruct
+		if err := rows.Scan(&catego.Categorie); err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println("add catégo : ", catego.Categorie)
+		categories = append(categories, catego)
+	}
+	if err := rows.Err(); err != nil {
+		fmt.Println(err)
+	}
+
+	if len(categories) == 0 {
+		fmt.Println("No categories")
+		http.Redirect(w, r, "/newCategorie", http.StatusSeeOther)
+		return
+	}
+
+	fmt.Println("final send :", categories)
+	newpost.ExecuteTemplate(w, "newPost.html", categories)
+}
+
+////////////////////////////////////////////////////////////////
+/////////               NEWCATEGORIE                   /////////
+////////////////////////////////////////////////////////////////
+
+func NewCategorie(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("session")
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	var username string
+	err = db.QueryRow("SELECT USERNAME FROM Sessions WHERE UUID = ?", cookie.Value).Scan(&username)
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	if r.Method == "POST" {
+		r.ParseForm()
+		NewCategorie := r.FormValue("newCategorie")
+
+		if NewCategorie != "" {
+			Request := `INSERT INTO Categories (TITLE) VALUES (?);`
+			_, err := db.Exec(Request, NewCategorie)
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				http.Redirect(w, r, "/newPost", http.StatusSeeOther)
+				return
+			}
+		}
+	}
+
+	newCategorie.ExecuteTemplate(w, "newCategorie.html", nil)
 }
 
 ////////////////////////////////////////////////////////////////
@@ -395,6 +517,24 @@ func getPostByID(id int) (PostData, error) {
 		return post, err
 	}
 	return post, nil
+}
+
+////////////////////////////////////////////////////////////////
+/////////                    PROFIL                    /////////
+////////////////////////////////////////////////////////////////
+
+func Profil(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("session")
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	var username string
+	err = db.QueryRow("SELECT USERNAME FROM Sessions WHERE UUID = ?", cookie.Value).Scan(&username)
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
 }
 
 ////////////////////////////////////////////////////////////////

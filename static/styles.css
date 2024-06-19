@@ -7,7 +7,7 @@ body {
 }
 
 header {
-    background-color: #2C2F48;
+    background-color: #0A0826;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -47,7 +47,7 @@ header nav ul li a {
 }
 
 .welcome span {
-    color: #4CAF50;
+    color: #4EACE4;
 }
 
 .welcome button {
@@ -61,7 +61,7 @@ header nav ul li a {
 }
 
 .categories, .users {
-    background-color: #2C2F48;
+    background-color: #0A0826;
     color: white;
     padding: 20px;
     margin-bottom: 20px;
@@ -75,8 +75,7 @@ header nav ul li a {
 
 .categories button, .users button, .posts button{
     border-radius: 10px;
-    margin-top: 40px;
-    margin-bottom: 70px;
+    margin-top: 60px;
 }
 
 .categories h2, .posts h2, .users h2 {
@@ -88,7 +87,7 @@ header nav ul li a {
     display: flex;
     justify-content: space-around;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 40px;
 }
 
 .category-item, .user-item {
@@ -98,15 +97,17 @@ header nav ul li a {
     text-align: center;
     border-radius: 5px;
     width: 30%;
+    max-width: 250px;
 }
 
 .post-item {
-    background-color: #2C2F48;
+    background-color: #0A0826;
     color: rgb(255, 255, 255);
     padding: 10px;
     text-align: center;
     border-radius: 5px;
     width: 30%;
+    max-width: 250px;
 }
 
 .category-item img, .post-item img, .user-item img {
@@ -120,7 +121,7 @@ header nav ul li a {
     border: none;
     padding: 5px 10px;
     cursor: pointer;
-    margin-top: 10px;
+    margin-top: 15px;
     border-radius: 8px;
 }
 
@@ -137,5 +138,5 @@ header nav ul li a {
 footer {
     text-align: center;
     padding: 10px;
-    color: #2C2F48;
+    color: #0A0826;
 }

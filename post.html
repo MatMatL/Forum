@@ -26,6 +26,23 @@
             <p>{{.Content}}</p>
             <p><small>Posted by {{.Username}} in {{.Categories}}</small></p>
         </section>
+
+        <div class="comments-section">
+            <h2>Commentaires</h2>
+            {{range .Comments}}
+                <div class="comment">
+                    <h3>{{.Username}}</h3>
+                    <p>{{.Content}}</p>
+                </div>
+            {{end}}
+            <form action="/post?id={{.ID}}" method="POST">
+                <input type="text" id="comment" name="comment" class="comment-input" placeholder="écrire un commentaire...">
+            </form>
+        </div>
+
+        {{if .IsAdmin}}
+            <li><a href="/deletePost?id={{.ID}}"> <strong>Supprimer le post</strong></a></li>
+        {{end}}
     </div>
     <footer class="black">
         <p>&copy; 2024 Mon Forum. Tous droits réservés.</p>

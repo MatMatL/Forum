@@ -212,3 +212,45 @@ footer.black {
     background-color: #0A0826;
     color: white;
 }
+
+.comments-section {
+    background-color: #0A0826; /* Même couleur que l'en-tête */
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 600px;
+    margin: 20px auto;
+    text-align: center;
+}
+
+.comment {
+    background-color: #d3d3d3;
+    color: black;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    text-align: left;
+}
+
+.comment h3 {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.comment p {
+    margin: 0;
+}
+
+.comment-input {
+    background-color: #d3d3d3;
+    color: #888888;
+    padding: 15px;
+    border: none;
+    border-radius: 10px;
+    width: calc(100% - 30px); /* Pour inclure le padding dans la largeur totale */
+    box-sizing: border-box;
+    margin: 0 auto;
+    display: block;
+    text-align: left;
+}

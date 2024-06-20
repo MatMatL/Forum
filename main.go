@@ -63,6 +63,8 @@ func main() {
 	http.HandleFunc("/categorie", Categorie)
 	http.HandleFunc("/user", User)
 	http.HandleFunc("/categories", Categories)
+	http.HandleFunc("/deletePost", DeletePost)
+	http.HandleFunc("/deleteCategorie", DeleteCategorie)
 
 	//handle wokspace files (css and pictures)
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
@@ -118,6 +120,16 @@ func InitTables() {
 	);
 	`
 	db.Exec(Sessions)
+
+	Comments := `
+	CREATE TABLE IF NOT EXISTS Comments (
+		ID INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+		POSTID     INT      NOT NULL,
+		USERNAME   TEXT     NOT NULL,
+		CONTENT    TEXT     NOT NULL UNIQUE
+	);
+	`
+	db.Exec(Comments)
 }
 
 ////////////////////////////////////////////////////////////////
@@ -645,6 +657,15 @@ type PostData struct {
 	ImagePath   string
 	WithPicture bool
 	Categories  string
+	Comments    []CommentData
+	IsAdmin     bool
+}
+
+type CommentData struct {
+	ID       int
+	PostID   int
+	Username string
+	Content  string
 }
 
 // post handler
@@ -672,7 +693,65 @@ func Post(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	username := CheckCookies(w, r)
+
+	if r.Method == "POST" && username != "" {
+		//data collection
+		r.ParseForm()
+		comment := r.FormValue("comment")
+		if comment != "" {
+			//insert into data base
+			db.Exec("INSERT INTO Comments (POSTID, USERNAME, CONTENT) VALUES (?, ?, ?)", id, username, comment)
+		}
+		comment = ""
+	}
+
+	postData.Comments = GetCommentsPostsByID(id)
+
+	if username == "admin" {
+		postData.IsAdmin = true
+	} else {
+		postData.IsAdmin = false
+	}
+
 	post.ExecuteTemplate(w, "post.html", postData)
+}
+
+func DeletePost(w http.ResponseWriter, r *http.Request) {
+	username := CheckCookies(w, r)
+
+	//to get the ID in the url
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		http.Error(w, "Missing ID parameter", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID parameter", http.StatusBadRequest)
+		return
+	}
+
+	if username != "admin" {
+		path := "/post?id=" + string(id)
+		http.Redirect(w, r, path, http.StatusSeeOther)
+		return
+	}
+
+	DeleteAPost(id)
+
+	http.Redirect(w, r, "/categories", http.StatusSeeOther)
+}
+
+func DeleteAPost(id int) {
+	DeleteAComment(id)
+	db.Exec("DELETE FROM Posts WHERE ID = ?", id)
+}
+
+func DeleteAComment(id int) {
+	db.Exec("DELETE FROM Comments WHERE POSTID = ?", id)
 }
 
 // get all the post from the db and return an array of them (using postdata structure)
@@ -763,6 +842,32 @@ func GetPostsByCategory(category string) []PostData {
 	return posts
 }
 
+func GetCommentsPostsByID(id int) []CommentData {
+	//query to get all comments matching the post id
+	rows, err := db.Query("SELECT ID, POSTID, USERNAME, CONTENT FROM Comments WHERE POSTID = ?", id)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer rows.Close()
+
+	//define the container
+	var comments []CommentData
+	//fill the array row by row
+	for rows.Next() {
+		var comment CommentData
+		if err := rows.Scan(&comment.ID, &comment.PostID, &comment.Username, &comment.Content); err != nil {
+			fmt.Println(err)
+		}
+		comments = append(comments, comment)
+	}
+	if err := rows.Err(); err != nil {
+		fmt.Println(err)
+	}
+
+	//return the filled array
+	return comments
+}
+
 ////////////////////////////////////////////////////////////////
 /////////                 Categorie                    /////////
 ////////////////////////////////////////////////////////////////
@@ -773,6 +878,7 @@ type CategorieData struct {
 	ImagePath string
 	ID        int
 	Posts     []PostData
+	IsAdmin   bool
 }
 
 // categories page handler
@@ -802,6 +908,14 @@ func Categorie(w http.ResponseWriter, r *http.Request) {
 
 	//and get the posts made on this categorie
 	categorieData.Posts = GetPostsByCategory(categorieData.Name)
+
+	username := CheckCookies(w, r)
+
+	if username == "admin" {
+		categorieData.IsAdmin = true
+	} else {
+		categorieData.IsAdmin = false
+	}
 
 	categorie.ExecuteTemplate(w, "categorie.html", categorieData)
 }
@@ -833,6 +947,62 @@ func getCategorieByID(id int) CategorieData {
 	row.Scan(&categorie.ID, &categorie.Name, &categorie.ImagePath)
 
 	return categorie
+}
+
+// get category name of the category and call delete posts
+func DeleteACategory(id int) {
+	row := db.QueryRow("SELECT TITLE FROM Categories WHERE ID = ?", id)
+
+	var title string
+	row.Scan(&title)
+
+	DeleteAPostsFromCategory(title)
+	db.Exec("DELETE FROM Categories WHERE ID = ?", id)
+}
+
+func DeleteAPostsFromCategory(category string) {
+	rows, _ := db.Query("SELECT ID FROM Posts WHERE category = ?", category)
+	var categories []string
+	for rows.Next() {
+		var category string
+		rows.Scan(&category)
+		categories = append(categories, category)
+	}
+	if err := rows.Err(); err != nil {
+		fmt.Println(err)
+	}
+
+	for i := 0; i < len(categories); i++ {
+		id, _ := strconv.Atoi(categories[i])
+		DeleteAPost(id)
+	}
+}
+
+func DeleteCategorie(w http.ResponseWriter, r *http.Request) {
+	username := CheckCookies(w, r)
+
+	//to get the ID in the url
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		http.Error(w, "Missing ID parameter", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID parameter", http.StatusBadRequest)
+		return
+	}
+
+	if username != "admin" {
+		path := "/post?id=" + string(id)
+		http.Redirect(w, r, path, http.StatusSeeOther)
+		return
+	}
+
+	DeleteACategory(id)
+
+	http.Redirect(w, r, "/categories", http.StatusSeeOther)
 }
 
 ////////////////////////////////////////////////////////////////

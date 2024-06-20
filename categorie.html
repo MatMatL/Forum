@@ -59,7 +59,10 @@
             </div>
         </section>
     </div>
-    
+    {{if .IsAdmin}}
+        <li><a href="/deleteCategorie?id={{.ID}}"> <strong>Supprimer le post</strong></a></li>
+    {{end}}
+
     <footer>
         <p>&copy; 2024 DroneZone. Tous droits réservés.</p>
     </footer>

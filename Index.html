@@ -14,7 +14,7 @@
             <ul>
                 <li><a href="/">Accueil</a></li>
                 <li><a href="/newPost">Nouveau post</a></li>
-                <li><a href="/">Catégories</a></li>
+                <li><a href="/categories">Catégories</a></li>
                 <li><a href="/profil">Profil</a></li>
                 <li><a href="/logout">Se deconnecter</a></li>
             </ul>
@@ -23,7 +23,7 @@
     <main>
         <section class="welcome">
             <h1>Bienvenue !</h1>
-            <p>Plongez dans le monde du <span>drones</span>.<br>
+            <p>Plongez dans le monde des <span>drones</span>.<br>
             Rejoignez notre <span>communauté</span> de fans et d'experts.</p>
             <button><a href="/login">Créer un compte</a></button>
         </section>
@@ -47,7 +47,7 @@
                     {{end}}
                 {{end}}
             </div>
-            <button class="view-all">Voir tous les posts</button>
+            <button class="view-all"><a href="/categories">Voir les categories</a></button>
         </section>
 
         <section class="posts">
@@ -61,7 +61,7 @@
                     </div>
                 {{end}}
             </div>
-            <button class="view-all">Voir les catégories</button>
+            <button class="view-all"><a href="/categories">Voir les categories</a></button>
         </section>
 
         <section class="users">

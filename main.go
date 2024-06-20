@@ -1,5 +1,6 @@
 package main
 
+//désolé tous dans le main pas le temps de split mais c'est structuré avec les gros bandeaux
 import (
 	"database/sql"
 	"fmt"
@@ -20,8 +21,10 @@ import (
 /////////                MAIN ; SERVER                 /////////
 ////////////////////////////////////////////////////////////////
 
+// port definition
 const port = ":8080"
 
+// templates definition
 var index = template.Must(template.ParseFiles("index.html"))
 var login = template.Must(template.ParseFiles("login.html"))
 var register = template.Must(template.ParseFiles("register.html"))
@@ -31,10 +34,13 @@ var newCategorie = template.Must(template.ParseFiles("newCategorie.html"))
 var categorie = template.Must(template.ParseFiles("categorie.html"))
 var user = template.Must(template.ParseFiles("user.html"))
 var profil = template.Must(template.ParseFiles("profil.html"))
+var categories = template.Must(template.ParseFiles("categories.html"))
 
+// db link
 var db *sql.DB
 
 func main() {
+	//db oppening
 	var err error
 	db, err = sql.Open("sqlite3", "./forum.db")
 	if err != nil {
@@ -42,8 +48,10 @@ func main() {
 	}
 	defer db.Close()
 
+	//tables initialisations
 	InitTables()
 
+	//handlers declaration
 	http.HandleFunc("/", Index)
 	http.HandleFunc("/login", Login)
 	http.HandleFunc("/register", Register)
@@ -54,7 +62,9 @@ func main() {
 	http.HandleFunc("/newCategorie", NewCategorie)
 	http.HandleFunc("/categorie", Categorie)
 	http.HandleFunc("/user", User)
+	http.HandleFunc("/categories", Categories)
 
+	//handle wokspace files (css and pictures)
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	http.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
 
@@ -66,6 +76,7 @@ func main() {
 /////////                  DATABASE                    /////////
 ////////////////////////////////////////////////////////////////
 
+// function that creates tables if they do not already exist
 func InitTables() {
 	Register := `
 	CREATE TABLE IF NOT EXISTS Register (
@@ -113,12 +124,14 @@ func InitTables() {
 /////////                   INDEX                      /////////
 ////////////////////////////////////////////////////////////////
 
+// struct with data to be send in the index
 type IndexData struct {
 	Posts      []PostData
 	Categories []CategorieData
 	Users      []UserData
 }
 
+// index handler
 func Index(w http.ResponseWriter, r *http.Request) {
 	var data IndexData
 	data.Posts = FormatingPosts()
@@ -127,6 +140,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	index.ExecuteTemplate(w, "index.html", data)
 }
 
+// function to limit the number of post in index post section (max 7 posts)
 func FormatingPosts() []PostData {
 	data := GetPosts()
 	var formatedPosts []PostData
@@ -145,6 +159,7 @@ func FormatingPosts() []PostData {
 	return formatedPosts
 }
 
+// function that limit number of characters in index post section (max 25 char for title and max 100 char for content)
 func FormatingPost(posts PostData) PostData {
 	var tempoFormated PostData
 	if len(posts.Title) > 25 {
@@ -167,6 +182,7 @@ func FormatingPost(posts PostData) PostData {
 	return tempoFormated
 }
 
+// function to limit the number of categories in index categories section (max 4 categories)
 func FormatingCategories() []CategorieData {
 	data := GetCategories()
 	var formatedCategories []CategorieData
@@ -183,6 +199,7 @@ func FormatingCategories() []CategorieData {
 	return formatedCategories
 }
 
+// function to limit the number of ursers in index ursers section (max 4 ursers)
 func FormatingUsers() []UserData {
 	Users := GetUser()
 	var formatedUsers []UserData
@@ -203,30 +220,38 @@ func FormatingUsers() []UserData {
 /////////                   LOGIN                      /////////
 ////////////////////////////////////////////////////////////////
 
+// login handler
 func Login(w http.ResponseWriter, r *http.Request) {
+	//code to check if the user is connected or not (if yes it is redirect to main menu)
 	username := CheckCookies(w, r)
 	if username != "" {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
+	//check if page send data
 	if r.Method == "POST" {
+		//parse data
 		r.ParseForm()
 		UsernameInput := r.FormValue("userName")
 		PasswordInput := r.FormValue("userPassword")
 
+		//check if input data is correct
 		username := loggingIn(UsernameInput, PasswordInput)
-
-		if username != "" {
+		if username != "" { //if it is correct then ->
+			//create session uuid using package uuid ("github.com/gofrs/uuid")
 			sessionID, err := uuid.NewV4()
 			if err != nil {
 				log.Fatal(err)
 			}
+			//define cookie living time
 			expiration := time.Now().Add(24 * time.Hour)
+			//insert into data base
 			_, err = db.Exec("INSERT INTO Sessions (UUID, USERNAME, EXPIRATION) VALUES (?, ?, ?)", sessionID.String(), username, expiration)
 			if err != nil {
 				log.Fatal(err)
 			}
 
+			//create cookie
 			cookie := &http.Cookie{
 				Name:    "session",
 				Value:   sessionID.String(),
@@ -241,7 +266,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	login.ExecuteTemplate(w, "login.html", nil)
 }
 
+// function that check if the user inputs are correct with the 2 ways of connection (with email or username)
 func loggingIn(UsernameInput string, PasswordInput string) string {
+	//first check using username
 	row := db.QueryRow("SELECT PASSWORD FROM Register WHERE USERNAME = ?", UsernameInput)
 
 	var password string
@@ -254,10 +281,12 @@ func loggingIn(UsernameInput string, PasswordInput string) string {
 		}
 	} else {
 		if PasswordIsGood(password, PasswordInput) {
+			//if yes then early return
 			return UsernameInput
 		}
 	}
 
+	//check with email
 	row = db.QueryRow("SELECT USERNAME, PASSWORD FROM Register WHERE EMAIL = ?", UsernameInput)
 
 	var username string
@@ -273,6 +302,7 @@ func loggingIn(UsernameInput string, PasswordInput string) string {
 			return username
 		}
 	}
+	//if not found or incorrect then nothing
 	return ""
 }
 
@@ -280,32 +310,40 @@ func loggingIn(UsernameInput string, PasswordInput string) string {
 /////////                  REGISTER                    /////////
 ////////////////////////////////////////////////////////////////
 
+// structure to be send to transfer errors
 type loginErrors struct {
 	WrongEmail    bool
 	WrongUsername bool
 	WrongPassword bool
 }
 
+// register handler
 func Register(w http.ResponseWriter, r *http.Request) {
+	//check if user is already logged in
 	username := CheckCookies(w, r)
 	if username != "" {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
+	//error container
 	var currentErrors = loginErrors{}
 
 	if r.Method == "POST" {
+		//data collection
 		r.ParseForm()
 		EmailInput := r.FormValue("newEmail")
 		UsernameInput := r.FormValue("newUserName")
 		PasswordInput := r.FormValue("newUserPassword")
 
+		//check if email can be taken
 		if !ValidEmail(EmailInput) || AlreadyTakenEmail(EmailInput) {
 			currentErrors.WrongEmail = true
 		} else if AlreadyTakenUsername(UsernameInput) {
 			currentErrors.WrongUsername = true
 		} else {
+			//if all ok then isert into db
 			Request := `INSERT INTO Register (EMAIL,USERNAME,PASSWORD) VALUES (?, ?, ?);`
+			//hach password
 			HachedPassword, errHash := bcrypt.GenerateFromPassword([]byte(PasswordInput), 10)
 			if errHash != nil {
 				log.Fatal(errHash)
@@ -314,6 +352,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				log.Fatal(err)
 			}
+			//redirect to login page
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
@@ -322,6 +361,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	register.ExecuteTemplate(w, "register.html", currentErrors)
 }
 
+// check if an email is valid (only based on the presence of a '@' xD)
 func ValidEmail(email string) bool {
 	for _, i := range email {
 		if i == '@' {
@@ -331,6 +371,7 @@ func ValidEmail(email string) bool {
 	return false
 }
 
+// check with a query if the email is already used
 func AlreadyTakenEmail(EmailInput string) bool {
 	row := db.QueryRow("SELECT EMAIL FROM Register WHERE EMAIL = ?", EmailInput)
 
@@ -348,6 +389,7 @@ func AlreadyTakenEmail(EmailInput string) bool {
 	return true
 }
 
+// check with a query if the username is already used
 func AlreadyTakenUsername(UsernameInput string) bool {
 	row := db.QueryRow("SELECT USERNAME FROM Register WHERE USERNAME = ?", UsernameInput)
 
@@ -365,6 +407,7 @@ func AlreadyTakenUsername(UsernameInput string) bool {
 	return true
 }
 
+// compare the hach of the user input with the hach in the db matching the username
 func PasswordIsGood(password string, PasswordInput string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(password), []byte(PasswordInput))
 
@@ -379,13 +422,16 @@ func PasswordIsGood(password string, PasswordInput string) bool {
 /////////                   LOGOUT                     /////////
 ////////////////////////////////////////////////////////////////
 
+// small hadler to log out of the session
 func Logout(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session")
 	if err == nil {
+		//delet from the db
 		db.Exec("DELETE FROM Sessions WHERE UUID = ?", cookie.Value)
 		cookie := &http.Cookie{
-			Name:   "session",
-			Value:  "",
+			Name:  "session",
+			Value: "",
+			//kill the cookie
 			MaxAge: -1,
 		}
 		http.SetCookie(w, cookie)
@@ -397,11 +443,14 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 /////////                  NEW POST                    /////////
 ////////////////////////////////////////////////////////////////
 
+// struct to send categories to html
 type CategoriesStruct struct {
 	Categorie string
 }
 
+// new post handler
 func NewPost(w http.ResponseWriter, r *http.Request) {
+	//check cookie
 	cookie, err := r.Cookie("session")
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -418,24 +467,28 @@ func NewPost(w http.ResponseWriter, r *http.Request) {
 	var Title, Content, Categories string
 
 	if r.Method == "POST" {
-		err := r.ParseMultipartForm(10 << 20) // Limite à 10 Mo
+		err := r.ParseMultipartForm(10 << 20) // 10 Mo limit
 		if err != nil {
 			http.Error(w, "Error parsing form", http.StatusBadRequest)
 			return
 		}
 
+		//parse form to get data
 		Title = r.FormValue("postTitle")
 		Content = r.FormValue("postContent")
 		Categories = r.FormValue("postCategories")
 		file, handler, _ := r.FormFile("postImage")
 
+		//because picture is not an obligation
 		if file != nil {
 			defer file.Close()
 		}
 
+		//only if there is a title and content to post
 		if Title != "" && Content != "" {
 			if file != nil {
 
+				//create the picture file
 				filePath := "./uploads/" + handler.Filename
 				out, err := os.Create(filePath)
 				if err != nil {
@@ -449,7 +502,7 @@ func NewPost(w http.ResponseWriter, r *http.Request) {
 					http.Error(w, "Error occurred while saving the file", http.StatusInternalServerError)
 					return
 				}
-
+				//insert into db
 				request := `INSERT INTO Posts (USERNAME, TITLE, CONTENT, CATEGORIES, IMAGEPATH) VALUES (?, ?, ?, ?, ?);`
 				_, err = db.Exec(request, username, Title, Content, Categories, filePath)
 				if err != nil {
@@ -459,6 +512,7 @@ func NewPost(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 			} else {
+				//if there is no picture (way easier)
 				Request := `INSERT INTO Posts (USERNAME, TITLE, CONTENT, CATEGORIES, IMAGEPATH) VALUES (?, ?, ?, ?, ?);`
 				_, err := db.Exec(Request, username, Title, Content, Categories, "")
 				if err != nil {
@@ -470,6 +524,7 @@ func NewPost(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	//get categories for the categorie selection
 	rows, err := db.Query("SELECT TITLE FROM Categories")
 	if err != nil {
 		fmt.Println(err)
@@ -502,7 +557,9 @@ func NewPost(w http.ResponseWriter, r *http.Request) {
 /////////               NEWCATEGORIE                   /////////
 ////////////////////////////////////////////////////////////////
 
+// handler to create categories
 func NewCategorie(w http.ResponseWriter, r *http.Request) {
+	//check cookie
 	cookie, err := r.Cookie("session")
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -517,12 +574,13 @@ func NewCategorie(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "POST" {
-		err := r.ParseMultipartForm(10 << 20) // Limite à 10 Mo
+		err := r.ParseMultipartForm(10 << 20) // 10 Mo limit
 		if err != nil {
 			http.Error(w, "Error parsing form", http.StatusBadRequest)
 			return
 		}
 
+		//get data
 		newCategorie := r.FormValue("newCategorie")
 		file, handler, _ := r.FormFile("categoryImage")
 
@@ -530,8 +588,10 @@ func NewCategorie(w http.ResponseWriter, r *http.Request) {
 			defer file.Close()
 		}
 
+		//same logic as for new posts
 		if newCategorie != "" {
 			if file != nil {
+				//create picture file
 				filePath := "./uploads/" + handler.Filename
 				out, err := os.Create(filePath)
 				if err != nil {
@@ -546,6 +606,7 @@ func NewCategorie(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 
+				//insert into db
 				request := `INSERT INTO Categories (TITLE, IMAGEPATH) VALUES (?, ?);`
 				_, err = db.Exec(request, newCategorie, filePath)
 				if err != nil {
@@ -555,6 +616,7 @@ func NewCategorie(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 			} else {
+				//if no picture
 				request := `INSERT INTO Categories (TITLE) VALUES (?);`
 				_, err = db.Exec(request, newCategorie)
 				if err != nil {
@@ -574,6 +636,7 @@ func NewCategorie(w http.ResponseWriter, r *http.Request) {
 /////////                    POST                      /////////
 ////////////////////////////////////////////////////////////////
 
+// a struct to represent a post in a single struct
 type PostData struct {
 	ID          int
 	Username    string
@@ -584,7 +647,9 @@ type PostData struct {
 	Categories  string
 }
 
+// post handler
 func Post(w http.ResponseWriter, r *http.Request) {
+	//to get the ID in the url
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
 		http.Error(w, "Missing ID parameter", http.StatusBadRequest)
@@ -597,6 +662,7 @@ func Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//get the post matching the id in the url
 	postData, err := getPostByID(id)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -609,14 +675,18 @@ func Post(w http.ResponseWriter, r *http.Request) {
 	post.ExecuteTemplate(w, "post.html", postData)
 }
 
+// get all the post from the db and return an array of them (using postdata structure)
 func GetPosts() []PostData {
+	//query to get them all
 	rows, err := db.Query("SELECT ID, USERNAME, TITLE, CONTENT, CATEGORIES, IMAGEPATH FROM Posts")
 	if err != nil {
 		fmt.Println(err)
 	}
 	defer rows.Close()
 
+	//define the container
 	var posts []PostData
+	//fill the array row by row
 	for rows.Next() {
 		var post PostData
 		if err := rows.Scan(&post.ID, &post.Username, &post.Title, &post.Content, &post.Categories, &post.ImagePath); err != nil {
@@ -628,9 +698,11 @@ func GetPosts() []PostData {
 		fmt.Println(err)
 	}
 
+	//return the filled array
 	return posts
 }
 
+// get a post matching it's id
 func getPostByID(id int) (PostData, error) {
 	var post PostData
 	row := db.QueryRow("SELECT ID, USERNAME, TITLE, CONTENT, CATEGORIES FROM Posts WHERE ID = ?", id)
@@ -641,6 +713,7 @@ func getPostByID(id int) (PostData, error) {
 	return post, nil
 }
 
+// get all ths posts made by a user (from his username)
 func GetPostsByUsername(username string) []PostData {
 	rows, err := db.Query("SELECT ID, USERNAME, TITLE, CONTENT, CATEGORIES, IMAGEPATH FROM Posts WHERE username = ?", username)
 	if err != nil {
@@ -648,6 +721,7 @@ func GetPostsByUsername(username string) []PostData {
 	}
 	defer rows.Close()
 
+	//create the array and fill it row by row
 	var posts []PostData
 	for rows.Next() {
 		var post PostData
@@ -660,9 +734,11 @@ func GetPostsByUsername(username string) []PostData {
 		fmt.Println(err)
 	}
 
+	//return filled array
 	return posts
 }
 
+// get all the posts of a given categorie and return them in an PostData array
 func GetPostsByCategory(category string) []PostData {
 	rows, err := db.Query("SELECT ID, TITLE, CONTENT, IMAGEPATH FROM Posts WHERE CATEGORIES = ?", category)
 	if err != nil {
@@ -670,6 +746,7 @@ func GetPostsByCategory(category string) []PostData {
 	}
 	defer rows.Close()
 
+	//create the array and fill it row by row
 	var posts []PostData
 	for rows.Next() {
 		var post PostData
@@ -682,6 +759,7 @@ func GetPostsByCategory(category string) []PostData {
 		fmt.Println(err)
 	}
 
+	//return filled array
 	return posts
 }
 
@@ -689,6 +767,7 @@ func GetPostsByCategory(category string) []PostData {
 /////////                 Categorie                    /////////
 ////////////////////////////////////////////////////////////////
 
+// struct that contains all the data of a categorie
 type CategorieData struct {
 	Name      string
 	ImagePath string
@@ -696,7 +775,16 @@ type CategorieData struct {
 	Posts     []PostData
 }
 
+// categories page handler
+func Categories(w http.ResponseWriter, r *http.Request) {
+	categorieData := GetCategories()
+
+	categories.ExecuteTemplate(w, "categories.html", categorieData)
+}
+
+// single category page handler
 func Categorie(w http.ResponseWriter, r *http.Request) {
+	//get the id of the category in the url
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
 		http.Error(w, "Missing ID parameter", http.StatusBadRequest)
@@ -709,13 +797,16 @@ func Categorie(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//get the data of this category
 	categorieData := getCategorieByID(id)
 
+	//and get the posts made on this categorie
 	categorieData.Posts = GetPostsByCategory(categorieData.Name)
 
 	categorie.ExecuteTemplate(w, "categorie.html", categorieData)
 }
 
+// function that get all the categories and return them in a 'CategorieData' array
 func GetCategories() []CategorieData {
 	rows, err := db.Query("SELECT ID, TITLE, IMAGEPATH FROM Categories")
 	if err != nil {
@@ -735,6 +826,7 @@ func GetCategories() []CategorieData {
 	return categories
 }
 
+// function that return category data from it's ID
 func getCategorieByID(id int) CategorieData {
 	var categorie CategorieData
 	row := db.QueryRow("SELECT ID, TITLE, IMAGEPATH FROM Categories WHERE ID = ?", id)
@@ -747,6 +839,7 @@ func getCategorieByID(id int) CategorieData {
 /////////                    PROFIL                    /////////
 ////////////////////////////////////////////////////////////////
 
+// structure that contains all user data (including it's posts)
 type UserData struct {
 	ID        int
 	Username  string
@@ -754,6 +847,7 @@ type UserData struct {
 	Posts     []PostData
 }
 
+// function that get and return all the users in a 'UserData' array
 func GetUser() []UserData {
 	rows, err := db.Query("SELECT ID, USERNAME, IMAGEPATH FROM Register")
 	if err != nil {
@@ -774,6 +868,7 @@ func GetUser() []UserData {
 	return users
 }
 
+// get user data from it's ID
 func GetUserByID(id int) UserData {
 	var user UserData
 	row := db.QueryRow("SELECT ID, USERNAME, IMAGEPATH FROM Register WHERE ID = ?", id)
@@ -782,6 +877,7 @@ func GetUserByID(id int) UserData {
 	return user
 }
 
+// get user data from it's username
 func GetUserByUsername(username string) UserData {
 	var user UserData
 	row := db.QueryRow("SELECT ID, USERNAME, IMAGEPATH FROM Register WHERE USERNAME = ?", username)
@@ -790,7 +886,9 @@ func GetUserByUsername(username string) UserData {
 	return user
 }
 
+// profil handler
 func Profil(w http.ResponseWriter, r *http.Request) {
+	//check if the user is connected
 	cookie, err := r.Cookie("session")
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -803,39 +901,46 @@ func Profil(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//get user data from it's name (that we got in the cookie)
 	userData := GetUserByUsername(username)
 
+	//get it's posts
 	userData.Posts = GetPostsByUsername(userData.Username)
 
+	//part for updating data
 	if r.Method == "POST" {
+		//parse forms
 		err := r.ParseMultipartForm(10 << 20) // Limite à 10 Mo
 		if err != nil {
 			http.Error(w, "Error parsing form", http.StatusBadRequest)
 			return
 		}
 
+		//get new email if there is one
 		newEmail := r.FormValue("newEmail")
 		if ValidEmail(newEmail) && !AlreadyTakenEmail(newEmail) && newEmail != "" {
 			query := `UPDATE Register SET EMAIL = ? WHERE ID = ?`
 			db.Exec(query, newEmail, userData.ID)
 		}
 
+		//get new username if there is one
 		newUserName := r.FormValue("newUserName")
 		if !AlreadyTakenUsername(newUserName) && newUserName != "" {
 			query := `UPDATE Register SET USERNAME = ? WHERE ID = ?`
 			db.Exec(query, newUserName, userData.ID)
 		}
 
+		//get new password if there is one
 		newUserPassword := r.FormValue("newUserPassword")
-
 		if newUserPassword != "" {
 			query := `UPDATE Register SET PASSWORD = ? WHERE ID = ?`
 			db.Exec(query, newUserPassword, userData.ID)
 		}
 
+		//get new profil picture if there is one
 		file, handler, _ := r.FormFile("postImage")
 		if file != nil {
-			fmt.Println("prout6")
+			//create the file
 			filePath := "./uploads/" + handler.Filename
 			out, err := os.Create(filePath)
 			if err != nil {
@@ -843,23 +948,23 @@ func Profil(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			defer out.Close()
-			fmt.Println("prout7")
 			_, err = io.Copy(out, file)
 			if err != nil {
 				http.Error(w, "Error occurred while saving the file", http.StatusInternalServerError)
 				return
 			}
-			fmt.Println("prout8")
+			//update the db
 			query := `UPDATE Register SET IMAGEPATH = ? WHERE ID = ?`
-			pp, errr := db.Exec(query, filePath, userData.ID)
-			fmt.Println("prout final :", pp, errr)
+			db.Exec(query, filePath, userData.ID)
 		}
 	}
 
 	profil.ExecuteTemplate(w, "profil.html", userData)
 }
 
+// user handler
 func User(w http.ResponseWriter, r *http.Request) {
+	//get the id in the url
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
 		http.Error(w, "Missing ID parameter", http.StatusBadRequest)
@@ -872,9 +977,12 @@ func User(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//get data of the user
 	userData := GetUserByID(id)
 
+	//get posts of this user
 	userData.Posts = GetPostsByUsername(userData.Username)
+
 	user.ExecuteTemplate(w, "user.html", userData)
 }
 
@@ -882,12 +990,15 @@ func User(w http.ResponseWriter, r *http.Request) {
 /////////                   COOKIES                    /////////
 ////////////////////////////////////////////////////////////////
 
+// check if the user has a cookie and if his session is still valid, if yes it returns it's username
 func CheckCookies(w http.ResponseWriter, r *http.Request) string {
+	//get cookie
 	cookie, err := r.Cookie("session")
 	if err != nil {
 		return ""
 	}
 
+	//check db data
 	var username string
 	var expiration time.Time
 	err = db.QueryRow("SELECT USERNAME, EXPIRATION FROM Sessions WHERE UUID = ?", cookie.Value).Scan(&username, &expiration)

@@ -138,9 +138,10 @@ func InitTables() {
 
 // struct with data to be send in the index
 type IndexData struct {
-	Posts      []PostData
-	Categories []CategorieData
-	Users      []UserData
+	Posts       []PostData
+	Categories  []CategorieData
+	Users       []UserData
+	IsNotLogged bool
 }
 
 // index handler
@@ -149,6 +150,14 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	data.Posts = FormatingPosts()
 	data.Categories = FormatingCategories()
 	data.Users = FormatingUsers()
+
+	_, err := r.Cookie("session")
+	if err != nil {
+		data.IsNotLogged = true
+	} else {
+		data.IsNotLogged = false
+	}
+
 	index.ExecuteTemplate(w, "index.html", data)
 }
 

@@ -16,7 +16,11 @@
                 <li><a href="/newPost">Nouveau post</a></li>
                 <li><a href="/categories">Catégories</a></li>
                 <li><a href="/profil">Profil</a></li>
+                {{if .IsNotLogged}}
+                <li><a href="/login">Se connecter</a></li>
+                {{else}}
                 <li><a href="/logout">Se deconnecter</a></li>
+                {{end}}
             </ul>
         </nav>
     </header>
@@ -25,7 +29,9 @@
             <h1>Bienvenue !</h1>
             <p>Plongez dans le monde des <span>drones</span>.<br>
             Rejoignez notre <span>communauté</span> de fans et d'experts.</p>
+            {{if .IsNotLogged}}
             <button><a href="/login">Créer un compte</a></button>
+            {{end}}
         </section>
 
         <section class="categories">
